@@ -1,6 +1,5 @@
 {
-    "name": "@secret-agent/monorepo",
-    "version": "1.0.0",
+  "name": "@secret-agent/monorepo",
   "private": true,
   "description": "The Web Browser Built for Scraping",
   "scripts": {
@@ -111,4 +110,5 @@
     "remark-slug": "git://github.com/ulixee/remark-slug.git",
     "tough-cookie": "^4.0.0"
   }
+    
 }
