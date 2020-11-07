@@ -9,7 +9,7 @@ const PuppetLauncher: IPuppetLauncher = {
   getLaunchArgs(options: { proxyPort?: number; showBrowser?: boolean }) {
     const chromeArguments = [...defaultArgs];
     if (!options.showBrowser) {
-      chromeArguments.push('--headless', '--hide-scrollbars', '--mute-audio');
+      chromeArguments.push( '--hide-scrollbars', '--mute-audio');
     } else {
       chromeArguments.push('--auto-open-devtools-for-tabs');
     }
