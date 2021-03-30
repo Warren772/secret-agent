@@ -12,6 +12,7 @@ let counter = 0;
 
 const PuppetLauncher: IPuppetLauncher = {
   getLaunchArgs(options: {
+	userDataDir?: string;
     proxyPort?: number;
     showBrowser?: boolean;
     disableGpu?: boolean;
@@ -19,6 +20,11 @@ const PuppetLauncher: IPuppetLauncher = {
     disableSandbox?: boolean;
   }) {
     const chromeArguments = [...defaultArgs];
+	if (options.userDataDir !== undefined){
+		chromeArguments.push(
+			`--user-data-dir=${Path.join(os.homedir(), userDataDir)}`,
+		);
+	}
     if (!options.showBrowser) {
       chromeArguments.push(
         '--headless',
@@ -26,11 +32,13 @@ const PuppetLauncher: IPuppetLauncher = {
         '--mute-audio',
         '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4', // adds cursor to headless linux
       );
-    } else {
-      chromeArguments.push(
-        `--user-data-dir=${Path.join(os.tmpdir(), 'chromium-headed-data', String((counter += 1)))}`,
-      ); // required to allow multiple browsers to be headed
-
+    } 
+	else {
+		if(options.userDataDir === undefined){
+		chromeArguments.push(
+			`--user-data-dir=${Path.join(os.tmpdir(), 'chromium-headed-data', String((counter += 1)))}`,
+		); // required to allow multiple browsers to be headed
+		}
       if (!options.disableDevtools) chromeArguments.push('--auto-open-devtools-for-tabs');
     }
 
