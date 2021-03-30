@@ -117,6 +117,10 @@ export default class GlobalPool {
     if (!engine.isHeaded && this.defaultLaunchArgs.showBrowser) {
       engine.isHeaded = true;
     }
+	
+	if(process.env.SA_USER_DIR !== undefined){
+		engine.userDataDir = process.env.SA_USER_DIR;
+	}
 
     const puppet = new Puppet(engine);
     this.puppets.push(puppet);
@@ -125,6 +129,7 @@ export default class GlobalPool {
       ...this.defaultLaunchArgs,
       proxyPort: this.mitmServer.port,
       showBrowser: engine.isHeaded,
+	  userDataDir: engine.userDataDir,
     });
     if (browserOrError instanceof Error) throw browserOrError;
     return puppet;

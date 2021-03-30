@@ -130,6 +130,7 @@ ${remedyMessage}`);
 }
 
 export interface ILaunchArgs {
+  userDataDir?: string;
   proxyPort?: number;
   showBrowser?: boolean;
   disableDevtools?: boolean;
