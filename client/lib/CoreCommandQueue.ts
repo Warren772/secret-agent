@@ -1,84 +1,63 @@
-import { createPromise } from '@secret-agent/commons/utils';
 import ISessionMeta from '@secret-agent/core-interfaces/ISessionMeta';
-import Log from '@secret-agent/commons/Logger';
-import CoreClient from './CoreClient';
-
-const { log } = Log(module);
+import { CanceledPromiseError } from '@secret-agent/commons/interfaces/IPendingWaitEvent';
+import Queue from '@secret-agent/commons/Queue';
+import ConnectionToCore from '../connections/ConnectionToCore';
 
 export default class CoreCommandQueue {
-  public type: 'queue' | 'heap' = 'queue';
-  public items: IItem[] = [];
   public lastCommandId = 0;
-  private isProcessing = false;
+
+  private readonly internalQueue: Queue;
+  private readonly sessionMarker: string = '';
 
   constructor(
-    private readonly meta: ISessionMeta | null,
-    private readonly coreClient: CoreClient,
-    parentCommandQueue?: CoreCommandQueue,
+    private readonly meta: (ISessionMeta & { sessionName: string }) | null,
+    private readonly connection: ConnectionToCore,
+    sharedQueue?: Queue,
   ) {
-    if (parentCommandQueue) {
-      this.type = parentCommandQueue.type;
+    if (meta) {
+      const markers = [
+        ''.padEnd(50, '-'),
+        `------${meta.sessionName ?? ''}`.padEnd(50, '-'),
+        `------${meta.sessionId ?? ''}`.padEnd(50, '-'),
+        ''.padEnd(50, '-'),
+      ].join('\n');
+      this.sessionMarker = `\n\n${markers}`;
     }
+
+    this.internalQueue = sharedQueue ?? new Queue('CORE COMMANDS');
+    this.internalQueue.concurrency = 1;
   }
 
-  public async run<T>(command: string, ...args: any[]): Promise<T> {
-    const { resolve, reject, promise } = createPromise<T>();
-    this.items.push({
-      resolve,
-      reject,
-      command,
-      meta: this.meta,
-      args,
-      stack: new Error().stack.replace('Error:', ''),
+  public run<T>(command: string, ...args: any[]): Promise<T> {
+    if (this.connection.isDisconnecting) {
+      return Promise.resolve(null);
+    }
+    return this.internalQueue.run<T>(this.runRequest.bind(this, command, args)).catch(error => {
+      error.stack += `${this.sessionMarker}`;
+      throw error;
     });
-    this.processQueue().catch(error =>
-      log.error('CommandRunError', { error, sessionId: this.meta?.sessionId }),
-    );
-    return promise;
   }
 
-  public clearPending() {
-    this.items.length = 0;
+  public stop(cancelError: CanceledPromiseError): void {
+    this.internalQueue.stop(cancelError);
   }
 
-  // PRIVATE
+  public createSharedQueue(meta: ISessionMeta & { sessionName: string }): CoreCommandQueue {
+    return new CoreCommandQueue(meta, this.connection, this.internalQueue);
+  }
 
-  private async processQueue() {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-    try {
-      while (this.items.length) {
-        const item: IItem = this.items.shift();
-        try {
-          const response = await this.coreClient.pipeOutgoingCommand(
-            item.meta,
-            item.command,
-            item.args,
-          );
-          let data = null;
-          if (response) {
-            this.lastCommandId = response.commandId;
-            data = response.data;
-          }
-          item.resolve(data);
-        } catch (error) {
-          error.stack += `\n----------${item.stack}`;
-          item.reject(error);
-        }
-        // force next loop so promises don't simulate synchronous-ity when local core
-        await new Promise(setImmediate);
-      }
-    } finally {
-      this.isProcessing = false;
+  private async runRequest<T>(command: string, args: any[]): Promise<T> {
+    const response = await this.connection.sendRequest({
+      meta: this.meta,
+      command,
+      args,
+    });
+
+    let data: T = null;
+    if (response) {
+      this.lastCommandId = response.commandId;
+      data = response.data;
     }
+    return data;
   }
-}
-
-interface IItem {
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
-  command: string;
-  meta: ISessionMeta | null;
-  args: any[];
-  stack: string;
 }

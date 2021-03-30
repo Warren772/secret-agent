@@ -1,10 +1,12 @@
 import { Helpers } from '@secret-agent/testing';
 import { ITestKoaServer } from '@secret-agent/testing/helpers';
-import SecretAgent from '../index';
+import { Handler } from '../index';
 
 let koaServer: ITestKoaServer;
+let handler: Handler;
 beforeAll(async () => {
-  await SecretAgent.prewarm();
+  handler = new Handler();
+  Helpers.onClose(() => handler.close(), true);
   koaServer = await Helpers.runKoaServer();
 });
 afterAll(Helpers.afterAll);
@@ -15,10 +17,10 @@ describe('Fetch tests', () => {
     koaServer.get('/fetch', ctx => {
       ctx.body = { got: 'it' };
     });
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
 
     await agent.goto(`${koaServer.baseUrl}/`);
-    await agent.waitForAllContentLoaded();
+    await agent.waitForPaintingStable();
     const result = await agent.fetch('/fetch');
     const json = await result.json();
     expect(json).toStrictEqual({ got: 'it' });
@@ -35,10 +37,10 @@ describe('Fetch tests', () => {
 
       ctx.body = { got: '2' };
     });
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
 
     await agent.goto(`${koaServer.baseUrl}/`);
-    await agent.waitForAllContentLoaded();
+    await agent.waitForPaintingStable();
 
     const response = await agent.fetch(`${koaServer.baseUrl}/post`, {
       method: 'post',
@@ -56,14 +58,14 @@ describe('Fetch tests', () => {
   it('should be able to create a request object', async () => {
     let header1: string;
     koaServer.get('/request', ctx => {
-      header1 = ctx.headers.header1;
+      header1 = ctx.headers.header1 as string;
 
       ctx.body = { got: 'request' };
     });
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
 
     await agent.goto(`${koaServer.baseUrl}/`);
-    await agent.waitForAllContentLoaded();
+    await agent.waitForPaintingStable();
 
     const { Request, fetch } = agent;
     const request = new Request(`${koaServer.baseUrl}/request`, {
@@ -82,10 +84,10 @@ describe('Fetch tests', () => {
     koaServer.get('/buffer', ctx => {
       ctx.body = Buffer.from('This is a test');
     });
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
 
     await agent.goto(`${koaServer.baseUrl}/`);
-    await agent.waitForAllContentLoaded();
+    await agent.waitForPaintingStable();
 
     const response = await agent.fetch(`${koaServer.baseUrl}/buffer`);
 

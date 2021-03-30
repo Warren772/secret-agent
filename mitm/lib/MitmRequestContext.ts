@@ -1,12 +1,13 @@
 import { URL } from 'url';
-import http from 'http';
+import * as http from 'http';
 import * as http2 from 'http2';
 import IResourceRequest from '@secret-agent/core-interfaces/IResourceRequest';
 import { TLSSocket } from 'tls';
 import MitmSocket from '@secret-agent/mitm-socket';
-import OriginType, { isOriginType } from '@secret-agent/commons/interfaces/OriginType';
+import OriginType, { isOriginType } from '@secret-agent/core-interfaces/OriginType';
 import IResourceHeaders from '@secret-agent/core-interfaces/IResourceHeaders';
 import IResourceResponse from '@secret-agent/core-interfaces/IResourceResponse';
+import IHttpResourceLoadDetails from '@secret-agent/core-interfaces/IHttpResourceLoadDetails';
 import HttpResponseCache from './HttpResponseCache';
 import HeadersHandler from '../handlers/HeadersHandler';
 import { IRequestSessionResponseEvent } from '../handlers/RequestSession';
@@ -18,13 +19,27 @@ import ResourceState from '../interfaces/ResourceState';
 export default class MitmRequestContext {
   private static contextIdCounter = 0;
 
+  public static createFromLoadedResource(
+    resourceLoadDetails: IHttpResourceLoadDetails,
+  ): IMitmRequestContext {
+    return {
+      id: (this.contextIdCounter += 1),
+      ...resourceLoadDetails,
+      didBlockResource: !!resourceLoadDetails.browserBlockedReason,
+      cacheHandler: null,
+      clientToProxyRequest: null,
+      stateChanges: new Map<ResourceState, Date>([[ResourceState.End, new Date()]]),
+      setState() {},
+    };
+  }
+
   public static create(
     params: Pick<
       IMitmRequestContext,
       'requestSession' | 'isSSL' | 'clientToProxyRequest' | 'proxyToClientResponse' | 'isUpgrade'
     >,
     responseCache: HttpResponseCache,
-  ) {
+  ): IMitmRequestContext {
     const {
       isSSL,
       proxyToClientResponse,
@@ -35,17 +50,39 @@ export default class MitmRequestContext {
 
     const protocol = isUpgrade ? 'ws' : 'http';
     const expectedProtocol = `${protocol}${isSSL ? 's' : ''}:`;
-    const providedHost =
-      clientToProxyRequest.headers.host ?? clientToProxyRequest.headers[':authority'] ?? '';
-    const url = new URL(clientToProxyRequest.url, `${expectedProtocol}//${providedHost}`);
+
+    let url: URL;
+    if (
+      clientToProxyRequest.url.startsWith('http://') ||
+      clientToProxyRequest.url.startsWith('https://') ||
+      clientToProxyRequest.url.startsWith('ws://') ||
+      clientToProxyRequest.url.startsWith('wss://')
+    ) {
+      url = new URL(clientToProxyRequest.url);
+    } else {
+      let providedHost = (clientToProxyRequest.headers.host ??
+        clientToProxyRequest.headers[':authority'] ??
+        '') as string;
+      if (providedHost.endsWith('/')) providedHost = providedHost.slice(0, -1);
+      if (
+        providedHost.startsWith('http://') ||
+        providedHost.startsWith('https://') ||
+        providedHost.startsWith('ws://') ||
+        providedHost.startsWith('wss://')
+      ) {
+        providedHost = providedHost.split('://').slice(1).join('://');
+      }
+      // build urls in two steps because URL constructor will bomb on valid WHATWG urls with path
+      url = new URL(`${expectedProtocol}//${providedHost}${clientToProxyRequest.url}`);
+    }
+
     if (url.protocol !== expectedProtocol) {
       url.protocol = expectedProtocol;
     }
-
     const state = new Map<ResourceState, Date>();
     const requestHeaders = parseRawHeaders(clientToProxyRequest.rawHeaders);
     const ctx: IMitmRequestContext = {
-      id: this.contextIdCounter += 1,
+      id: (this.contextIdCounter += 1),
       isSSL,
       isUpgrade,
       isClientHttp2: clientToProxyRequest instanceof http2.Http2ServerRequest,
@@ -80,14 +117,17 @@ export default class MitmRequestContext {
     return ctx;
   }
 
-  public static createFromHttp2Push(parentContext: IMitmRequestContext, rawHeaders: string[]) {
+  public static createFromHttp2Push(
+    parentContext: IMitmRequestContext,
+    rawHeaders: string[],
+  ): IMitmRequestContext {
     const requestHeaders = parseRawHeaders(rawHeaders);
     const url = new URL(
       `${parentContext.url.protocol}//${requestHeaders[':authority']}${requestHeaders[':path']}`,
     );
     const state = new Map<ResourceState, Date>();
     const ctx = {
-      id: this.contextIdCounter += 1,
+      id: (this.contextIdCounter += 1),
       url,
       method: requestHeaders[':method'],
       isServerHttp2: parentContext.isServerHttp2,
@@ -136,11 +176,13 @@ export default class MitmRequestContext {
 
     const response = {
       url: ctx.responseUrl,
-      statusCode: ctx.originalStatus,
+      statusCode: ctx.originalStatus ?? ctx.status,
       statusMessage: ctx.statusMessage,
       headers: ctx.responseHeaders,
       trailers: ctx.responseTrailers,
       timestamp: ctx.responseTime?.toISOString(),
+      browserServedFromCache: ctx.browserServedFromCache,
+      browserLoadFailure: ctx.browserLoadFailure,
       remoteAddress: ctx.remoteAddress,
     } as IResourceResponse;
 
@@ -150,21 +192,24 @@ export default class MitmRequestContext {
       request,
       response,
       redirectedToUrl: ctx.redirectedToUrl,
-      wasCached: ctx.cacheHandler.didProposeCachedResource,
+      wasCached: ctx.cacheHandler?.didProposeCachedResource ?? false,
       resourceType: ctx.resourceType,
-      body: ctx.cacheHandler.buffer,
+      body: ctx.cacheHandler?.buffer,
       localAddress: ctx.localAddress,
       dnsResolvedIp: ctx.dnsResolvedIp,
       originalHeaders: ctx.requestOriginalHeaders,
+      socketId: ctx.proxyToServerMitmSocket?.id,
       clientAlpn: ctx.clientAlpn,
       serverAlpn: ctx.proxyToServerMitmSocket?.alpn,
       didBlockResource: ctx.didBlockResource,
       executionMillis: (ctx.responseTime ?? new Date()).getTime() - ctx.requestTime.getTime(),
       isHttp2Push: ctx.isHttp2Push,
+      browserBlockedReason: ctx.browserBlockedReason,
+      browserCanceled: ctx.browserCanceled,
     };
   }
 
-  public static assignMitmSocket(ctx: IMitmRequestContext, mitmSocket: MitmSocket) {
+  public static assignMitmSocket(ctx: IMitmRequestContext, mitmSocket: MitmSocket): void {
     ctx.proxyToServerMitmSocket = mitmSocket;
     ctx.isServerHttp2 = mitmSocket.isHttp2();
     ctx.localAddress = mitmSocket.localAddress;
@@ -195,7 +240,7 @@ export default class MitmRequestContext {
     return originType;
   }
 
-  public static readHttp1Response(ctx: IMitmRequestContext, response: http.IncomingMessage) {
+  public static readHttp1Response(ctx: IMitmRequestContext, response: http.IncomingMessage): void {
     ctx.status = response.statusCode;
     ctx.originalStatus = response.statusCode;
     ctx.statusMessage = response.statusMessage;
@@ -205,6 +250,12 @@ export default class MitmRequestContext {
     ctx.serverToProxyResponse = response;
     ctx.responseOriginalHeaders = parseRawHeaders(response.rawHeaders);
     ctx.responseHeaders = HeadersHandler.cleanResponseHeaders(ctx, ctx.responseOriginalHeaders);
+
+    const redirectUrl = HeadersHandler.checkForRedirectResponseLocation(ctx);
+    if (redirectUrl) {
+      ctx.redirectedToUrl = redirectUrl.href;
+      ctx.responseUrl = ctx.redirectedToUrl;
+    }
   }
 
   public static readHttp2Response(
@@ -212,7 +263,7 @@ export default class MitmRequestContext {
     response: http2.ClientHttp2Stream,
     statusCode: number,
     rawHeaders: string[],
-  ) {
+  ): void {
     const headers = parseRawHeaders(rawHeaders);
     ctx.status = statusCode;
     ctx.originalStatus = statusCode;
@@ -220,5 +271,11 @@ export default class MitmRequestContext {
     ctx.serverToProxyResponse = response;
     ctx.responseOriginalHeaders = headers;
     ctx.responseHeaders = HeadersHandler.cleanResponseHeaders(ctx, headers);
+
+    const redirectUrl = HeadersHandler.checkForRedirectResponseLocation(ctx);
+    if (redirectUrl) {
+      ctx.redirectedToUrl = redirectUrl.href;
+      ctx.responseUrl = ctx.redirectedToUrl;
+    }
   }
 }

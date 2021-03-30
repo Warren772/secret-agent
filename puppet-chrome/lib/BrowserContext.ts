@@ -1,31 +1,50 @@
 import { assert } from '@secret-agent/commons/utils';
 import IPuppetContext, {
   IPuppetContextEvents,
-} from '@secret-agent/puppet/interfaces/IPuppetContext';
-import IBrowserEmulation from '@secret-agent/puppet/interfaces/IBrowserEmulation';
+} from '@secret-agent/puppet-interfaces/IPuppetContext';
+import IBrowserEmulationSettings from '@secret-agent/puppet-interfaces/IBrowserEmulationSettings';
 import { ICookie } from '@secret-agent/core-interfaces/ICookie';
 import { URL } from 'url';
 import Protocol from 'devtools-protocol';
 import {
   addTypedEventListener,
-  IRegisteredEventListener,
   removeEventListeners,
   TypedEventEmitter,
 } from '@secret-agent/commons/eventUtils';
-import { IBoundLog } from '@secret-agent/commons/Logger';
+import { IBoundLog } from '@secret-agent/core-interfaces/ILog';
 import { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
+import { CanceledPromiseError } from '@secret-agent/commons/interfaces/IPendingWaitEvent';
+import { IPuppetWorker } from '@secret-agent/puppet-interfaces/IPuppetWorker';
 import { Page } from './Page';
 import { Browser } from './Browser';
 import { CDPSession } from './CDPSession';
-import { Worker } from './Worker';
 import Frame from './Frame';
 import CookieParam = Protocol.Network.CookieParam;
 import TargetInfo = Protocol.Target.TargetInfo;
 
-export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
+export class BrowserContext
+  extends TypedEventEmitter<IPuppetContextEvents>
   implements IPuppetContext {
-  public emulation: IBrowserEmulation;
   public logger: IBoundLog;
+  public get emulation(): IBrowserEmulationSettings {
+    return this._emulation;
+  }
+
+  public set emulation(value: IBrowserEmulationSettings) {
+    this._emulation = value;
+    for (const page of this.pages) {
+      page.updateEmulationSettings().catch(err => {
+        this.logger.error('ERROR setting emulation settings', err);
+      });
+    }
+  }
+
+  public workersById = new Map<string, IPuppetWorker>();
+
+  private _emulation: IBrowserEmulationSettings;
+
+  private readonly createdTargetIds = new Set<string>();
   private readonly pages: Page[] = [];
   private readonly browser: Browser;
   private readonly id: string;
@@ -39,7 +58,7 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
   constructor(
     browser: Browser,
     contextId: string,
-    emulation: IBrowserEmulation,
+    emulation: IBrowserEmulationSettings,
     logger: IBoundLog,
   ) {
     super();
@@ -61,6 +80,7 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
       url: 'about:blank',
       browserContextId: this.id,
     });
+    this.createdTargetIds.add(targetId);
 
     await this.attachToTarget(targetId);
 
@@ -76,6 +96,11 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
     if (page) page.didClose();
   }
 
+  targetKilled(targetId: string, errorCode: number) {
+    const page = this.getPageWithId(targetId);
+    if (page) page.onTargetKilled(errorCode);
+  }
+
   async attachToTarget(targetId: string) {
     // chrome 80 still needs you to manually attach
     if (!this.getPageWithId(targetId)) {
@@ -84,6 +109,13 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
         flatten: true,
       });
     }
+  }
+
+  async attachToWorker(targetInfo: TargetInfo) {
+    await this.cdpRootSessionSend('Target.attachToTarget', {
+      targetId: targetInfo.targetId,
+      flatten: true,
+    });
   }
 
   onPageAttached(cdpSession: CDPSession, targetInfo: TargetInfo) {
@@ -96,7 +128,8 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
 
     let opener = targetInfo.openerId ? this.getPageWithId(targetInfo.openerId) || null : null;
     // make the first page the active page
-    if (!opener && this.pages.length) opener = this.pages[0];
+    if (!opener && !this.createdTargetIds.has(targetInfo.targetId)) opener = this.pages[0];
+
     const page = new Page(cdpSession, targetInfo.targetId, this, this.logger, opener);
     this.pages.push(page);
     // eslint-disable-next-line promise/catch-or-return
@@ -112,12 +145,23 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
     }
   }
 
-  onWorkerAttached(cdpSession: CDPSession, worker: Worker, pageTargetId: string) {
+  async onSharedWorkerAttached(cdpSession: CDPSession, targetInfo: TargetInfo) {
+    const page = this.pages.find(x => !x.isClosed) ?? this.pages[0];
+    await page.onWorkerAttached(cdpSession, targetInfo);
+  }
+
+  beforeWorkerAttached(cdpSession: CDPSession, workerTargetId: string, pageTargetId: string) {
     this.subscribeToDevtoolsMessages(cdpSession, {
       sessionType: 'worker' as const,
       pageTargetId,
-      workerTargetId: worker.id,
+      workerTargetId,
     });
+  }
+
+  onWorkerAttached(worker: IPuppetWorker) {
+    this.workersById.set(worker.id, worker);
+    worker.on('close', () => this.workersById.delete(worker.id));
+    this.emit('worker', { worker });
   }
 
   async close(): Promise<void> {
@@ -127,6 +171,9 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
     await Promise.all(this.pages.map(x => x.close()));
     await this.cdpRootSessionSend('Target.disposeBrowserContext', {
       browserContextId: this.id,
+    }).catch(err => {
+      if (err instanceof CanceledPromiseError) return;
+      throw err;
     });
     removeEventListeners(this.eventListeners);
     this.browser.browserContextsById.delete(this.id);
@@ -149,9 +196,9 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
       .filter(c => {
         if (!url) return true;
 
-        if (url.hostname !== c.domain) return false;
+        if (url.hostname !== c.domain && !url.hostname.includes(c.domain)) return false;
         if (!url.pathname.startsWith(c.path)) return false;
-        if ((url.protocol === 'https:') !== c.secure) return false;
+        if (c.secure === true && url.protocol !== 'https:') return false;
         return true;
       });
   }
@@ -204,10 +251,10 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
     });
   }
 
-  private async cdpRootSessionSend<T extends keyof ProtocolMapping.Commands>(
+  private cdpRootSessionSend<T extends keyof ProtocolMapping.Commands>(
     method: T,
     params: ProtocolMapping.Commands[T]['paramsType'][0] = {},
-  ) {
+  ): Promise<ProtocolMapping.Commands[T]['returnType']> {
     return this.browser.cdpSession.send(method, params, this);
   }
 
@@ -226,8 +273,12 @@ export class BrowserContext extends TypedEventEmitter<IPuppetContextEvents>
     const receive = addTypedEventListener(cdpSession.messageEvents, 'receive', event => {
       if (shouldFilter) {
         // see if this was initiated by this browser context
-        const { id } = event as any;
+        const { id, targetInfo } = event as any;
         if (id && !this.browserContextInitiatedMessageIds.has(id)) return;
+
+        // see if this has a browser context target
+        const target = targetInfo as TargetInfo;
+        if (target && target.browserContextId && target.browserContextId !== this.id) return;
       }
       this.emit('devtools-message', {
         direction: 'receive',

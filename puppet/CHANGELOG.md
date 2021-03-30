@@ -3,6 +3,187 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.1...v1.4.1-alpha.0) (2021-03-23)
+
+
+### Bug Fixes
+
+* **emulator:** polyfill setAppBadge/clearAppBadge ([5cfa400](https://github.com/ulixee/secret-agent/commit/5cfa40082de419458656370622552c668b0a071f))
+
+
+### Features
+
+* **client:** expose frames ([44a6b12](https://github.com/ulixee/secret-agent/commit/44a6b129fef6f541cffc24e8913fd76defcf3aef))
+
+
+
+
+
+# [1.4.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.0...v1.4.0-alpha.1) (2021-03-11)
+
+
+### Bug Fixes
+
+* test timeout ([b7b6af2](https://github.com/ulixee/secret-agent/commit/b7b6af2a28d349df8e7e9aed49ca3bfe67ad08e1))
+
+
+
+
+
+# [1.4.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.3.1-alpha.1...v1.4.0-alpha.0) (2021-03-11)
+
+
+### Bug Fixes
+
+* **client:** translate errors when session n/a ([6c15793](https://github.com/ulixee/secret-agent/commit/6c15793f67cadfcf7d62e270848fbef895e397af))
+* **mitm:** don’t wait for browser resources ([4c70bd5](https://github.com/ulixee/secret-agent/commit/4c70bd5ae89bf38cda80049d522e0b25f842240d)), closes [#176](https://github.com/ulixee/secret-agent/issues/176)
+* removed unnecessary browserVersionDir in EngineFetcher ([9daa98a](https://github.com/ulixee/secret-agent/commit/9daa98a42234b27898e2e2c2bada3815a5826ba6))
+* renamed some vars, removed chromium blocks, and modified BrowserFetcher ([60955b2](https://github.com/ulixee/secret-agent/commit/60955b259c15c887e20ae423ed8683caed80751d))
+* **puppet:** extract linux chrome ([55f8ef5](https://github.com/ulixee/secret-agent/commit/55f8ef57ba410685697f5dc73f923026c8b0c4a6))
+* **puppet:** no chrome launch errors to client ([1e636a6](https://github.com/ulixee/secret-agent/commit/1e636a6625c47c67ee8a4e7d5be05ce99b513a5f))
+
+
+### Features
+
+* **puppet:** switch to chrome ([d064e53](https://github.com/ulixee/secret-agent/commit/d064e53ace2107ac95348cf721c3cc35afe07efc))
+* **puppet:** unsupported linux install message ([fe6e634](https://github.com/ulixee/secret-agent/commit/fe6e63472a813c6275433b8dfb00e094c49c8a6a))
+* **puppet:** update docker to for new installs ([19351b5](https://github.com/ulixee/secret-agent/commit/19351b556718161c885b5dfb12f7fa80af8daf46))
+
+
+
+
+
+# [1.3.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.3...v1.3.0-alpha.4) (2021-02-15)
+
+
+### Bug Fixes
+
+* **core:** only reject navigation with errors ([7e7cfd3](https://github.com/ulixee/secret-agent/commit/7e7cfd37cff860422d8c46bed90eba31652df9d5)), closes [#153](https://github.com/ulixee/secret-agent/issues/153)
+* **core/client:** export usable mjs/cjs ([ca149ef](https://github.com/ulixee/secret-agent/commit/ca149efbfbdf03da0fda7d127348e5de6f2a4f8b))
+* **puppet:** fix waiting for worker ready ([e511009](https://github.com/ulixee/secret-agent/commit/e51100900dd52c6962639bab240f1cdac24f5d50))
+
+
+
+
+
+# [1.3.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.2...v1.3.0-alpha.3) (2021-02-11)
+
+
+### Bug Fixes
+
+* **puppet:** non-popups getting opener ([e79584f](https://github.com/ulixee/secret-agent/commit/e79584f5b71557bebe86b0301a8a0e9e55d8ac8f))
+
+
+
+
+
+# [1.3.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.1...v1.3.0-alpha.2) (2021-02-09)
+
+**Note:** Version bump only for package @secret-agent/puppet
+
+
+
+
+
+# [1.3.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.0...v1.3.0-alpha.1) (2021-02-06)
+
+
+### Features
+
+* replaced chrome 80, 81, 83 emulators with more robust os-level data ([276b269](https://github.com/ulixee/secret-agent/commit/276b26923368c5ed5636f65ad14fb2b3a9f87e9e))
+* **core:** tweak logging for not-really-errors ([bd5f9eb](https://github.com/ulixee/secret-agent/commit/bd5f9ebf38eb58adc14542dc4e32737b0ad8ff9e))
+
+
+
+
+
+# [1.3.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.5...v1.3.0-alpha.0) (2021-02-02)
+
+
+### Bug Fixes
+
+* **core:** full close down of on premature exit ([aa53e85](https://github.com/ulixee/secret-agent/commit/aa53e85782a57da4d69f8750a5c3719c60683f5b))
+
+
+### Features
+
+* **client:** coreConnection as configuration ([ac284ca](https://github.com/ulixee/secret-agent/commit/ac284cac3fa867a9623fd841edf96d04906e3072))
+* **core:** add screenshot capability ([f075f89](https://github.com/ulixee/secret-agent/commit/f075f89636edb81c4626c51929665373069de31a))
+* **core:** confirm mouse clicks hit targets ([bf2b047](https://github.com/ulixee/secret-agent/commit/bf2b047ca9e49665f7f150e66780b79fd02b7972))
+* **core:** convert closing logs to stats ([382979d](https://github.com/ulixee/secret-agent/commit/382979df1a758de82297169465be0e57c2c87b53))
+* **core:** merge injected scripts into core ([f674f7b](https://github.com/ulixee/secret-agent/commit/f674f7b85a9cf66dd3558d849a78f6b9aa1099dc))
+* **replay:** single install of replay ([5425bee](https://github.com/ulixee/secret-agent/commit/5425bee76488ac5bff4f46d8b99eb874dd7f5a35))
+
+
+
+
+
+# [1.2.0-alpha.5](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.4...v1.2.0-alpha.5) (2020-12-29)
+
+**Note:** Version bump only for package @secret-agent/puppet
+
+
+
+
+
+# [1.2.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.3...v1.2.0-alpha.4) (2020-12-22)
+
+**Note:** Version bump only for package @secret-agent/puppet
+
+
+
+
+
+# [1.2.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.2...v1.2.0-alpha.3) (2020-12-16)
+
+
+### Bug Fixes
+
+* **replay:** multiple sessions showing incorrectly ([20ba30c](https://github.com/ulixee/secret-agent/commit/20ba30caebcef42de65dee18e6b82d92c7193d9c))
+
+
+### Features
+
+* **client:** update awaited dom to 1.1.8 ([a1b9b68](https://github.com/ulixee/secret-agent/commit/a1b9b68e735ee54ceaef3436c43df0d0744c8f47))
+
+
+
+
+
+# [1.2.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.1...v1.2.0-alpha.2) (2020-12-01)
+
+
+### Bug Fixes
+
+* **emulate-humans:** fix some tests ([b1e05d7](https://github.com/ulixee/secret-agent/commit/b1e05d79168fdf60f4ba6c63b8b74441c5c52f56))
+* **eslint:** add return types to client code ([c2e31cc](https://github.com/ulixee/secret-agent/commit/c2e31ccba4974f2bda269e77e6df9b82a2695d4f))
+
+
+
+
+
+# [1.2.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.0...v1.2.0-alpha.1) (2020-11-20)
+
+
+### Features
+
+* **human-emulators:** ghost emulator ([70bcf27](https://github.com/ulixee/secret-agent/commit/70bcf273a2e995f8168dced9797d441b6eaec80b))
+
+
+
+
+
+# [1.2.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.1...v1.2.0-alpha.0) (2020-11-11)
+
+
+### Features
+
+* **awaited-dom:** documentation for props ([029a1f5](https://github.com/ulixee/secret-agent/commit/029a1f5b10cc13119d4bb808d35f80cce4aeb3dd))
+
+
+
+
+
 # [1.1.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.0...v1.1.0-alpha.1) (2020-11-05)
 
 

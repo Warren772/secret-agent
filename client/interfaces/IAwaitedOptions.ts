@@ -1,7 +1,7 @@
-import CoreTab from '../lib/CoreTab';
-import ISecretAgent from './ISecretAgent';
+import Agent from '../lib/Agent';
+import CoreFrameEnvironment from '../lib/CoreFrameEnvironment';
 
 export default interface IAwaitedOptions {
-  secretAgent: ISecretAgent;
-  coreTab: Promise<CoreTab>;
+  secretAgent: Agent;
+  coreFrame: Promise<CoreFrameEnvironment>;
 }

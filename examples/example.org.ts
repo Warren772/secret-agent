@@ -1,9 +1,8 @@
-import SecretAgent from '@secret-agent/full-client';
+import agent from 'secret-agent';
 
 async function run() {
-  const agent = await new SecretAgent({ sessionName: 'example.org' });
   await agent.goto('https://example.org/');
-  await agent.waitForAllContentLoaded();
+  await agent.waitForPaintingStable();
 
   console.log('\n-- PRINTING location.href ---------');
   console.log(await agent.url);
@@ -15,7 +14,7 @@ async function run() {
   console.log('-------------------------------------');
   console.log('DONE');
 
-  await SecretAgent.shutdown();
+  await agent.close();
 }
 
 run().catch(error => console.log(error));

@@ -14,20 +14,33 @@ let lastHighlightNodes: number[] = [];
 const idMap = new Map<number, Node>();
 const domChangeList = [];
 
+const logDebugToConsole = false;
+const debugLogs = [];
+
+window.debugLogs = debugLogs;
+window.idMap = idMap;
+
+function debugLog(message: string, ...args: any[]) {
+  if (logDebugToConsole) {
+    console.log(...arguments);
+  }
+  debugLogs.push({ message, args });
+}
+
 const isMainFrame = window.isMainFrame ?? true;
 if (isMainFrame) {
   frameNodePath = 'main';
 
   if (document && document.addEventListener) {
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOMContentLoaded');
+      debugLog('DOMContentLoaded');
     });
   }
 }
 
 window.replayEvents = function replayEvents(changeEvents, resultNodeIds, mouseEvent, scrollEvent) {
   createReplayItems();
-  console.log(
+  debugLog(
     'Events: changes=%s, highlighted=%s, hasMouse=%s, hasScroll=%s',
     changeEvents?.length ?? 0,
     resultNodeIds?.length ?? 0,
@@ -59,7 +72,7 @@ function applyDomChanges(changeEvents: IFrontendDomChangeEvent[]) {
     try {
       replayDomEvent(changeEvent);
     } catch (err) {
-      console.log('ERROR applying change', changeEvent, err);
+      debugLog('ERROR applying change', changeEvent, err);
     }
   }
 }
@@ -67,7 +80,7 @@ function applyDomChanges(changeEvents: IFrontendDomChangeEvent[]) {
 /////// DOM REPLAYER ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 function replayDomEvent(event: IFrontendDomChangeEvent) {
-  const { action, textContent, frameIdPath } = event;
+  const { action, textContent, frameIdPath, nodeId } = event;
   if (frameIdPath && frameIdPath !== frameNodePath) {
     delegateToSubframe(event);
     return;
@@ -79,7 +92,7 @@ function replayDomEvent(event: IFrontendDomChangeEvent) {
   }
 
   if (action === 'location') {
-    console.log('Location: href=%s', event.textContent);
+    debugLog('Location: href=%s', event.textContent);
     window.history.replaceState({}, 'Replay', textContent);
     return;
   }
@@ -97,12 +110,13 @@ function replayDomEvent(event: IFrontendDomChangeEvent) {
   let parentNode: Node;
   try {
     parentNode = getNode(parentNodeId);
+    node = deserializeNode(event, parentNode as Element);
+
     if (!parentNode && (action === 'added' || action === 'removed')) {
-      console.log('WARN: parent node id not found', event);
+      debugLog('WARN: parent node id not found', event);
       return;
     }
 
-    node = deserializeNode(event, parentNode as Element);
     switch (action) {
       case 'added':
         if (!event.previousSiblingId) {
@@ -129,7 +143,7 @@ function replayDomEvent(event: IFrontendDomChangeEvent) {
         break;
     }
   } catch (error) {
-    console.log('ERROR: applying action', error.stack, parentNode, node, event);
+    console.error('ERROR: applying action', error.stack, parentNode, node, event);
   }
 }
 
@@ -137,7 +151,7 @@ function replayDomEvent(event: IFrontendDomChangeEvent) {
 
 const preserveElements = new Set<string>(['HTML', 'HEAD', 'BODY']);
 function isPreservedElement(event: IFrontendDomChangeEvent) {
-  const { action, nodeId, nodeType, tagName } = event;
+  const { action, nodeId, nodeType } = event;
 
   if (nodeType === document.DOCUMENT_NODE) {
     idMap.set(nodeId, document);
@@ -149,11 +163,16 @@ function isPreservedElement(event: IFrontendDomChangeEvent) {
     return true;
   }
 
-  if (!preserveElements.has(event.tagName)) return false;
+  let tagName = event.tagName;
+  if (!tagName) {
+    const existing = idMap.get(nodeId);
+    if (existing) tagName = (existing as Element).tagName;
+  }
+  if (!preserveElements.has(tagName)) return false;
 
   const elem = document.querySelector(tagName);
   if (!elem) {
-    console.log('Preserved element doesnt exist!', tagName);
+    debugLog('Preserved element doesnt exist!', tagName);
     return true;
   }
 
@@ -164,7 +183,7 @@ function isPreservedElement(event: IFrontendDomChangeEvent) {
       elem.removeAttributeNS(attr.name, attr.namespaceURI);
       elem.removeAttribute(attr.name);
     }
-    console.log('WARN: script trying to remove preserved node', event, elem);
+    debugLog('WARN: script trying to remove preserved node', event, elem);
     return true;
   }
 
@@ -205,7 +224,7 @@ function delegateToSubframe(event: IFrontendDomChangeEvent) {
     pendingFrameCreationEvents
       .get(childFrameNodePath)
       .push({ frameNodePath: childFrameNodePath, event });
-    console.log('Frame: not loaded yet, queuing pending', childFrameNodePath);
+    debugLog('Frame: not loaded yet, queuing pending', childFrameNodePath);
     return;
   }
 
@@ -218,7 +237,7 @@ function delegateToSubframe(event: IFrontendDomChangeEvent) {
 
   const frame = node as HTMLIFrameElement;
   if (!frame.contentWindow) {
-    console.log('Frame: without window', frame);
+    debugLog('Frame: without window', frame);
     return;
   }
   if (pendingFrameCreationEvents.has(childFrameNodePath)) {
@@ -236,7 +255,7 @@ function onNewDocument(event: IFrontendDomChangeEvent) {
   const href = textContent;
   const newUrl = new URL(href);
 
-  console.log(
+  debugLog(
     'Location: (new document) %s, frame: %s, idx: %s',
     href,
     event.frameIdPath,
@@ -275,7 +294,10 @@ function setNodeAttributes(node: Element, data: IFrontendDomChangeEvent) {
     const ns = data.attributeNamespaces ? data.attributeNamespaces[name] : null;
     try {
       if (name === 'xmlns' || name.startsWith('xmlns') || node.tagName === 'HTML') {
-        node.setAttribute(name, value);
+        if (value === null) node.removeAttribute(name);
+        else node.setAttribute(name, value);
+      } else if (value === null) {
+        node.removeAttributeNS(ns || null, name);
       } else {
         node.setAttributeNS(ns || null, name, value);
       }
@@ -343,9 +365,9 @@ function deserializeNode(data: IFrontendDomChangeEvent, parent: Element): Node {
         }
       }
       if (node instanceof HTMLIFrameElement) {
-        console.log('Frame: frameNodePath=%s', `${frameNodePath}_${data.nodeId}`);
-        (node as any).nodeId = data.nodeId;
+        debugLog('Frame: frameNodePath=%s', `${frameNodePath}_${data.nodeId}`);
       }
+      (node as any).nodeId = data.nodeId;
       setNodeAttributes(node as Element, data);
       setNodeProperties(node as Element, data);
       if (data.textContent) {
@@ -419,7 +441,7 @@ function highlightNodes(nodeIds: number[]) {
       highlightElements[i].remove();
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 }
 
@@ -428,17 +450,82 @@ function highlightNodes(nodeIds: number[]) {
 let lastMouseEvent: IFrontendMouseEvent;
 let mouse: HTMLElement;
 
+const elementAbsolutes = new Map<HTMLElement, { top: number; left: number }>();
+const elementDisplayCache = new Map<HTMLElement, string>();
+const offsetsAtPageY = new Map<number, { pageOffset: number; elementOffset: number }>();
+const offsetBlock = 100;
+
 function updateMouse(mouseEvent: IFrontendMouseEvent) {
   lastMouseEvent = mouseEvent;
   if (mouseEvent.pageX !== undefined) {
+    const targetNode = getNode(mouseEvent.targetNodeId) as HTMLElement;
+
+    let pageY = mouseEvent.pageY;
+
+    if (mouseEvent.targetNodeId && targetNode) {
+      const pageOffsetsYKey = pageY - (pageY % offsetBlock);
+      // try last two offset zones
+      const pageOffsetsAtHeight =
+        offsetsAtPageY.get(pageOffsetsYKey) ?? offsetsAtPageY.get(pageOffsetsYKey - offsetBlock);
+      // if there's a page translation we've found that's closer than this one, use it
+      if (
+        pageOffsetsAtHeight &&
+        Math.abs(pageOffsetsAtHeight.elementOffset) < Math.abs(mouseEvent.offsetY)
+      ) {
+        pageY = mouseEvent.pageY + pageOffsetsAtHeight.pageOffset;
+      } else {
+        const { top } = getElementAbsolutePosition(targetNode);
+        pageY = Math.round(mouseEvent.offsetY + top);
+        const offsetAtYHeightEntry = offsetsAtPageY.get(pageOffsetsYKey);
+        if (
+          !offsetAtYHeightEntry ||
+          Math.abs(offsetAtYHeightEntry.elementOffset) > Math.abs(mouseEvent.offsetY)
+        ) {
+          offsetsAtPageY.set(pageOffsetsYKey, {
+            elementOffset: mouseEvent.offsetY,
+            pageOffset: pageY - mouseEvent.pageY,
+          });
+        }
+      }
+    }
+
     mouse.style.left = `${mouseEvent.pageX}px`;
-    mouse.style.top = `${mouseEvent.pageY}px`;
+    mouse.style.top = `${pageY}px`;
+    mouse.style.display = 'block';
   }
   if (mouseEvent.buttons !== undefined) {
     for (let i = 0; i < 5; i += 1) {
       mouse.classList.toggle(`button-${i}`, (mouseEvent.buttons & (1 << i)) !== 0);
     }
   }
+}
+
+function getElementAbsolutePosition(element: HTMLElement) {
+  const offsetElement = getOffsetElement(element);
+  if (!elementAbsolutes.has(offsetElement)) {
+    const rect = offsetElement.getBoundingClientRect();
+    const absoluteX = Math.round(rect.left + window.scrollX);
+    const absoluteY = Math.round(rect.top + window.scrollY);
+    elementAbsolutes.set(offsetElement, { top: absoluteY, left: absoluteX });
+  }
+  return elementAbsolutes.get(offsetElement);
+}
+
+function getOffsetElement(element: HTMLElement) {
+  while (element.tagName !== 'BODY') {
+    if (!elementDisplayCache.has(element)) {
+      elementDisplayCache.set(element, getComputedStyle(element).display);
+    }
+    const display = elementDisplayCache.get(element);
+    if (display === 'inline') {
+      const offsetParent = element.parentElement as HTMLElement;
+      if (!offsetParent) break;
+      element = offsetParent;
+    } else {
+      break;
+    }
+  }
+  return element;
 }
 
 function updateScroll(scrollEvent: IScrollRecord) {
@@ -474,21 +561,21 @@ function createReplayItems() {
   sa-overflow-bar {
     width: 500px;
     background-color:#3498db;
-    margin:0 auto; 
+    margin:0 auto;
     height: 100%;
     box-shadow: 3px 0 0 0 #3498db;
     display:block;
   }
-  
+
   sa-overflow {
     z-index:10000;
     display:block;
-    width:100%; 
-    height:8px; 
+    width:100%;
+    height:8px;
     position:fixed;
     pointer-events: none;
   }
-  
+
   sa-highlight {
     z-index:10000;
     position:absolute;
@@ -498,7 +585,7 @@ function createReplayItems() {
     padding:5px;
     pointer-events: none;
   }
-  
+
   sa-mouse-pointer {
     pointer-events: none;
     position: absolute;
@@ -538,6 +625,7 @@ function createReplayItems() {
   replayShadow.appendChild(styleElement);
 
   mouse = document.createElement('sa-mouse-pointer');
+  mouse.style.display = 'none';
   replayShadow.appendChild(mouse);
 
   function cancelEvent(e: Event) {

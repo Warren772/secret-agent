@@ -2,30 +2,32 @@
   "compileOnSave": true,
   "compilerOptions": {
     "incremental": true,
-    "target": "ES2018",
-    "module": "commonjs",
-    "lib": ["es2018", "dom"],
+    "target": "ES2019",
+    "module": "CommonJS",
+    "lib": ["ES2019", "DOM", "DOM.Iterable"],
     "noImplicitAny": false,
     "sourceMap": true,
-    "inlineSourceMap": false,
-    "esModuleInterop": true,
+    "esModuleInterop": false,
     "declaration": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
     "rootDir": ".",
+    "baseUrl": ".",
     "outDir": "./build",
     "preserveSymlinks": false,
     "experimentalDecorators": true
   },
-  "baseUrl": ".",
   "references": [
     {
-      "path": "injected-scripts/tsconfig.json"
+      "path": "core/injected-scripts/tsconfig.json"
     },
     {
       "path": "replay/tsconfig.json"
+    },
+    {
+      "path": "emulate-browsers/base/injected-scripts/tsconfig.json"
     }
   ],
   "include": ["**/*.ts", "**/*.js", "**/*.json", ".eslintrc.js"],
@@ -40,6 +42,9 @@
     "replay",
     "replay/injected-scripts",
     "website",
-    "injected-scripts"
+    "core/injected-scripts",
+    "examples/*.js",
+    "emulate-browsers/base/injected-scripts",
+    "emulate-browsers/**/data"
   ]
 }

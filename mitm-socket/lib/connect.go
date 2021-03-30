@@ -20,7 +20,7 @@ func main() {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM)
 
-    go func() {
+	go func() {
 		_, err := fmt.Scanf("disconnect")
 		if err != nil {
 			panic(err)
@@ -28,15 +28,14 @@ func main() {
 		sigc <- syscall.SIGINT
 	}()
 
-
 	json.Unmarshal([]byte(os.Args[2]), &connectArgs)
 
 	debug := connectArgs.Debug
 
-
 	domainSocketPiper := &DomainSocketPiper{
 		Path:  socketPath,
 		debug: connectArgs.Debug,
+		keepAlive: connectArgs.KeepAlive,
 	}
 
 	if debug {
@@ -87,9 +86,9 @@ type ConnectArgs struct {
 	Servername         string
 	RejectUnauthorized bool
 	ProxyUrl           string
-	ProxyAuthBase64    string
 	ClientHelloId      string
 	TcpTtl             int
 	TcpWindowSize      int
 	Debug              bool
+	KeepAlive          bool
 }

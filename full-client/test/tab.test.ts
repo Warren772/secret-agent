@@ -1,13 +1,15 @@
 import { Helpers } from '@secret-agent/testing';
-import Core from '@secret-agent/core';
 import { Command } from '@secret-agent/client/interfaces/IInteractions';
 import { KeyboardKeys } from '@secret-agent/core-interfaces/IKeyboardLayoutUS';
-import os from 'os';
-import SecretAgent from '../index';
+import * as os from 'os';
+import { ITestKoaServer } from '@secret-agent/testing/helpers';
+import { Handler } from '../index';
 
-let koaServer;
+let koaServer: ITestKoaServer;
+let handler: Handler;
 beforeAll(async () => {
-  await SecretAgent.prewarm();
+  handler = new Handler();
+  Helpers.onClose(() => handler.close(), true);
   koaServer = await Helpers.runKoaServer();
   koaServer.get('/tabTest', ctx => {
     ctx.body = `<body>
@@ -26,7 +28,7 @@ afterEach(Helpers.afterEach);
 
 describe('Multi-tab scenarios', () => {
   it('can wait for another tab', async () => {
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(`${koaServer.baseUrl}/tabTest`);
@@ -37,6 +39,7 @@ describe('Multi-tab scenarios', () => {
     await agent.click(agent.document.querySelector('a'));
     const newTab = await agent.waitForNewTab();
 
+    expect(await agent.tabs).toHaveLength(2);
     expect(newTab.tabId).not.toBe(agent.activeTab.tabId);
     expect(await newTab.url).toBe(`${koaServer.baseUrl}/newTab`);
     await agent.focusTab(newTab);
@@ -47,20 +50,18 @@ describe('Multi-tab scenarios', () => {
     await agent.click(agent.document.querySelector('a'));
     expect(await agent.activeTab.url).toBe(`${koaServer.baseUrl}/newTab#hash`);
 
-    const core = Core.byTabId[await newTab.tabId];
-
-    // @ts-ignore
-    const emulator = core.session.emulator;
+    const meta = await agent.meta;
     // make sure user agent is wired up
-    const userAgent = await agent.getJsValue('navigator.userAgent');
-    expect(userAgent.value).toBe(emulator.userAgent.raw);
+    const navigatorAgent = await agent.getJsValue('navigator.userAgent');
+    expect(navigatorAgent.value).toBe(meta.userAgentString);
 
     // make sure polyfills ran
     const csi = await agent.getJsValue<any>('chrome.csi()');
     expect(csi.value.startE).toBeTruthy();
 
     await agent.closeTab(newTab);
-    expect(await agent.tabs).toHaveLength(1);
+    const newTabList = await agent.tabs;
+    expect(newTabList).toHaveLength(1);
     expect(agent.activeTab).toBe(tab1);
   });
 
@@ -89,11 +90,11 @@ describe('Multi-tab scenarios', () => {
       ctx.body = `<body><h1>Final</h1></body>`;
     });
 
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(`${koaServer.baseUrl}/page1`);
-    await agent.waitForAllContentLoaded();
+    await agent.waitForPaintingStable();
     expect(await agent.tabs).toHaveLength(1);
     expect(await agent.url).toBe(`${koaServer.baseUrl}/page1`);
     await agent.click(agent.document.querySelector('a'));
@@ -103,21 +104,28 @@ describe('Multi-tab scenarios', () => {
       url: '/logo.png',
     });
     expect(page1Logos).toHaveLength(2);
-    expect(await page1Logos[0].request.url).toBe(`${koaServer.baseUrl}/logo.png?page=page1`);
+    const urls = await Promise.all([page1Logos[0].request.url, page1Logos[1].request.url]);
+    urls.sort();
+    expect(urls).toStrictEqual([
+      `${koaServer.baseUrl}/logo.png`,
+      `${koaServer.baseUrl}/logo.png?page=page1`,
+    ]);
 
     const tabs = await agent.tabs;
     expect(tabs).toHaveLength(2);
-    const page2Logos = await tabs[1].waitForResource({
+    const tab2 = tabs[1];
+    const page2Logos = await tab2.waitForResource({
       url: '/logo.png?page=page2',
     });
     expect(page2Logos).toHaveLength(1);
     expect(await page2Logos[0].request.url).toBe(`${koaServer.baseUrl}/logo.png?page=page2`);
-    await tabs[1].focus();
-    await agent.click(agent.document.querySelector('#fwd'));
-    await tabs[1].waitForLocation('change');
+    await tab2.focus();
+    await tab2.waitForPaintingStable();
+    await agent.click(tab2.document.querySelector('#fwd'));
+    await tab2.waitForLocation('change');
     expect(await agent.url).toBe(`${koaServer.baseUrl}/page3`);
-    expect(await tabs[1].url).toBe(`${koaServer.baseUrl}/page3`);
-    expect(await tabs[0].url).toBe(`${koaServer.baseUrl}/page1`);
+    expect(await tab2.url).toBe(`${koaServer.baseUrl}/page3`);
+    expect(await tab1.url).toBe(`${koaServer.baseUrl}/page1`);
   }, 30e3);
 
   it('can command click on a link to get to a new tab', async () => {
@@ -127,7 +135,7 @@ describe('Multi-tab scenarios', () => {
 </body>`;
     });
 
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(`${koaServer.baseUrl}/tabTest2`);
@@ -147,15 +155,10 @@ describe('Multi-tab scenarios', () => {
     await agent.click(document.querySelector('a'));
     expect(await agent.activeTab.url).toBe(`${koaServer.baseUrl}/newTab#hash`);
 
-    const sessionId = await agent.sessionId;
-    // @ts-ignore
-    const core = Object.values(Core.byTabId).find(x => x.tab.sessionId === sessionId);
-
-    // @ts-ignore
-    const emulator = core.session.emulator;
+    const meta = await agent.meta;
     // make sure user agent is wired up
-    const userAgent = await agent.getJsValue('navigator.userAgent');
-    expect(userAgent.value).toBe(emulator.userAgent.raw);
+    const navigatorAgent = await agent.getJsValue('navigator.userAgent');
+    expect(navigatorAgent.value).toBe(meta.userAgentString);
 
     // make sure polyfills ran
     const csi = await agent.getJsValue<any>('chrome.csi()');
@@ -187,7 +190,7 @@ document.querySelector('a').addEventListener('click', event => {
 </body>`;
     });
 
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(`${koaServer.baseUrl}/ajaxTab`);
@@ -200,14 +203,10 @@ document.querySelector('a').addEventListener('click', event => {
     const { document } = newTab;
     expect(await document.querySelector('h1').textContent).toBe('Overridden Result');
 
-    const sessionId = await agent.sessionId;
-    // @ts-ignore
-    const core = Object.values(Core.byTabId).find(x => x.tab.sessionId === sessionId);
-    // @ts-ignore
-    const emulator = core.session.emulator;
+    const meta = await agent.meta;
     // make sure user agent is wired up
-    const userAgent = await agent.getJsValue('navigator.userAgent');
-    expect(userAgent.value).toBe(emulator.userAgent.raw);
+    const navigatorAgent = await agent.getJsValue('navigator.userAgent');
+    expect(navigatorAgent.value).toBe(meta.userAgentString);
 
     await agent.closeTab(newTab);
   });

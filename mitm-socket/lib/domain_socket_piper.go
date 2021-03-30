@@ -50,25 +50,43 @@ func (piper *DomainSocketPiper) Pipe(remoteConn net.Conn, sigc chan os.Signal) {
 	}
 
 	copyUntilTimeout := func(dst io.Writer, src net.Conn, notifyChan chan error, counter *uint32) {
-		var err error
+		var readErr error
+		var writeErr error
 		var n int
-		var one = make([]byte, 1)
+		var data []byte = make([]byte, 4096)
 
 		for {
 			if atomic.LoadUint32(counter) > 0 {
 				return
 			}
 
-			src.SetReadDeadline(time.Now().Add(readTimeout))
-			n, err = src.Read(one)
-			if err != nil {
-				notifyChan <- err
-			} else if n > 0 {
-				dst.Write(one)
-				_, err := io.Copy(dst, src)
-				if err != nil {
-					notifyChan <- err
+			n, readErr = src.Read(data)
+
+			if n > 0 {
+				_, writeErr = dst.Write(data[:n])
+				if writeErr != nil {
+				    notifyChan <- writeErr
 				}
+			}
+
+			if readErr != nil {
+				notifyChan <- readErr
+				if atomic.LoadUint32(counter) > 0 {
+				    return
+				}
+
+				if readErr == io.EOF {
+				    if n == 0 {
+                        atomic.AddUint32(&piper.completeCounter, 1)
+                        if piper.debug {
+                            fmt.Println("DomainSocket -> 0 Byte EOF")
+                        }
+                        return
+                    }
+                    time.Sleep(1 * time.Second)
+                }
+			} else if n == 0 {
+				time.Sleep(200 * time.Millisecond)
 			}
 		}
 	}
@@ -84,6 +102,7 @@ func (piper *DomainSocketPiper) Pipe(remoteConn net.Conn, sigc chan os.Signal) {
 	for {
 		select {
 		case <-sigc:
+			atomic.AddUint32(&piper.completeCounter, 1)
 			if piper.debug {
 				fmt.Println("DomainSocket -> Sigc")
 			}
@@ -98,14 +117,6 @@ func (piper *DomainSocketPiper) Pipe(remoteConn net.Conn, sigc chan os.Signal) {
 					}
 					return
 				}
-
-				if neterr, ok = err.(net.Error); ok && neterr.Timeout() {
-					atomic.AddUint32(&piper.completeCounter, 1)
-					if piper.debug {
-						log.Printf("DomainSocket -> Read Timeout")
-					}
-					return
-				}
 			}
 
 			neterr, ok = err.(net.Error)
@@ -117,7 +128,7 @@ func (piper *DomainSocketPiper) Pipe(remoteConn net.Conn, sigc chan os.Signal) {
 				return
 			}
 
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(100 * time.Millisecond):
 			if atomic.LoadUint32(&piper.completeCounter) > 0 {
 				if piper.debug {
 					fmt.Println("DomainSocket -> Closed")

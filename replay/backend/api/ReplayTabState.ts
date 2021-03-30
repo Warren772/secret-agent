@@ -14,7 +14,6 @@ import ITickState from '~shared/interfaces/ITickState';
 import ReplayTime from '~backend/api/ReplayTime';
 import getResolvable from '~shared/utils/promise';
 
-const loadWaitTime = 5e3;
 let pageCounter = 0;
 
 export default class ReplayTabState extends EventEmitter {
@@ -26,7 +25,7 @@ export default class ReplayTabState extends EventEmitter {
   public readonly focusEvents: IFocusRecord[] = [];
   public readonly paintEvents: IPaintEvent[] = [];
 
-  public tabId: string;
+  public tabId: number;
   public startOrigin: string;
   public urlOrigin: string;
   public viewportWidth: number;
@@ -34,6 +33,7 @@ export default class ReplayTabState extends EventEmitter {
   public currentPlaybarOffsetPct = 0;
   public replayTime: ReplayTime;
   public tabCreatedTime: string;
+  public hasAllData = false;
 
   public get isActive() {
     return this.listenerCount('tick:changes') > 0;
@@ -41,6 +41,10 @@ export default class ReplayTabState extends EventEmitter {
 
   public get currentTick() {
     return this.ticks[this.currentTickIdx];
+  }
+
+  public get nextTick() {
+    return this.ticks[this.currentTickIdx + 1];
   }
 
   public isReady = getResolvable<void>();
@@ -60,7 +64,7 @@ export default class ReplayTabState extends EventEmitter {
     this.viewportWidth = tabMeta.width;
     if (this.startOrigin) this.isReady.resolve();
     this.tabId = tabMeta.tabId;
-    this.ticks.push(new ReplayTick(this, 'load', 0, -1, replayTime.start.toISOString(), 'Load'));
+    this.ticks.push(new ReplayTick(this, 'init', 0, -1, replayTime.start.toISOString(), 'Load'));
   }
 
   public getTickState() {
@@ -76,20 +80,14 @@ export default class ReplayTabState extends EventEmitter {
     return this.ticks.find(x => x.commandId === pageToLoad.commandId)?.playbarOffsetPercent ?? 0;
   }
 
-  public gotoPreviousTick() {
+  public transitionToPreviousTick() {
     const prevTickIdx = this.currentTickIdx > 0 ? this.currentTickIdx - 1 : this.currentTickIdx;
     return this.loadTick(prevTickIdx);
   }
 
-  public gotoNextTick() {
+  public transitionToNextTick() {
     const result = this.loadTick(this.currentTickIdx + 1);
-    if (
-      this.replayTime.close &&
-      // give it a few seconds to get the rest of the data.
-      // TODO: figure out how to confirm via http2 that all data is sent
-      new Date().getTime() - this.replayTime.close.getTime() > loadWaitTime &&
-      this.currentTickIdx === this.ticks.length - 1
-    ) {
+    if (this.replayTime.close && this.hasAllData && this.currentTickIdx === this.ticks.length - 1) {
       this.currentPlaybarOffsetPct = 100;
     }
     return result;
@@ -135,7 +133,7 @@ export default class ReplayTabState extends EventEmitter {
     }
 
     const changeEvents: IFrontendDomChangeEvent[] = [];
-    if (newTick.eventType === 'load') {
+    if (newTick.eventType === 'init') {
       startIndex = -1;
       changeEvents.push({
         action: 'newDocument',
@@ -184,10 +182,10 @@ export default class ReplayTabState extends EventEmitter {
     if (!newTick) return;
     if (!this.replayTime.close) {
       // give ticks time to load. TODO: need a better strategy for this
-      if (new Date().getTime() - new Date(newTick.timestamp).getTime() < loadWaitTime) return;
+      if (new Date().getTime() - new Date(newTick.timestamp).getTime() < 2e3) return;
     }
 
-    console.log('Loading tick %s', newTickIdx);
+    // console.log('Loading tick %s', newTickIdx);
 
     const playbarOffset = specificPlaybarOffset ?? newTick.playbarOffsetPercent;
     this.currentTickIdx = newTickIdx;
@@ -203,6 +201,9 @@ export default class ReplayTabState extends EventEmitter {
       frontendMouseEvent = {
         pageX: mouseEvent.pageX,
         pageY: mouseEvent.pageY,
+        offsetX: mouseEvent.offsetX,
+        offsetY: mouseEvent.offsetY,
+        targetNodeId: mouseEvent.targetNodeId,
         buttons: mouseEvent.buttons,
         viewportHeight: this.viewportHeight,
         viewportWidth: this.viewportWidth,
@@ -315,7 +316,7 @@ export default class ReplayTabState extends EventEmitter {
         tick.isNewDocumentTick = true;
         tick.documentOrigin = textContent;
         this.pages.push({
-          id: pageCounter += 1,
+          id: (pageCounter += 1),
           url: textContent,
           commandId,
         });
@@ -414,7 +415,7 @@ export default class ReplayTabState extends EventEmitter {
       tick.documentOrigin = documentOrigin;
       tick.highlightNodeIds = lastSelectedNodeIds;
 
-      if (tick.eventType === 'load') {
+      if (tick.eventType === 'init') {
         tick.documentLoadPaintIndex = -1;
         tick.documentOrigin = this.startOrigin;
         tick.paintEventIdx = -1;

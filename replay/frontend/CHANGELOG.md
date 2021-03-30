@@ -3,6 +3,123 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.1...v1.4.1-alpha.0) (2021-03-23)
+
+
+### Features
+
+* **client:** expose frames ([44a6b12](https://github.com/ulixee/secret-agent/commit/44a6b129fef6f541cffc24e8913fd76defcf3aef))
+
+
+
+
+
+# [1.4.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.0...v1.4.0-alpha.1) (2021-03-11)
+
+**Note:** Version bump only for package @secret-agent/replay-frontend
+
+
+
+
+
+# [1.4.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.3.1-alpha.1...v1.4.0-alpha.0) (2021-03-11)
+
+
+### Features
+
+* **replay:** update for mac silicon + deps ([30ffec7](https://github.com/ulixee/secret-agent/commit/30ffec74fc06485b56344f17374a082d2055c1f1))
+
+
+
+
+
+# [1.3.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.2...v1.3.0-alpha.3) (2021-02-11)
+
+**Note:** Version bump only for package @secret-agent/replay-frontend
+
+
+
+
+
+# [1.3.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.1...v1.3.0-alpha.2) (2021-02-09)
+
+**Note:** Version bump only for package @secret-agent/replay-frontend
+
+
+
+
+
+# [1.3.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.0...v1.3.0-alpha.1) (2021-02-06)
+
+**Note:** Version bump only for package @secret-agent/replay-frontend
+
+
+
+
+
+# [1.3.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.5...v1.3.0-alpha.0) (2021-02-02)
+
+
+### Features
+
+* **core:** add screenshot capability ([f075f89](https://github.com/ulixee/secret-agent/commit/f075f89636edb81c4626c51929665373069de31a))
+
+
+
+
+
+# [1.2.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.3...v1.2.0-alpha.4) (2020-12-22)
+
+**Note:** Version bump only for package @secret-agent/replay-frontend
+
+
+
+
+
+# [1.2.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.2...v1.2.0-alpha.3) (2020-12-16)
+
+
+### Bug Fixes
+
+* **replay:** multiple sessions showing incorrectly ([20ba30c](https://github.com/ulixee/secret-agent/commit/20ba30caebcef42de65dee18e6b82d92c7193d9c))
+
+
+
+
+
+# [1.2.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.1...v1.2.0-alpha.2) (2020-12-01)
+
+
+### Bug Fixes
+
+* **replay:** fix stalling loads ([7ca1dbd](https://github.com/ulixee/secret-agent/commit/7ca1dbd91e59d5c5d6812ba62bec517f746b2374))
+
+
+
+
+
+# [1.2.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.0...v1.2.0-alpha.1) (2020-11-20)
+
+
+### Features
+
+* **human-emulators:** ghost emulator ([70bcf27](https://github.com/ulixee/secret-agent/commit/70bcf273a2e995f8168dced9797d441b6eaec80b))
+
+
+
+
+
+# [1.2.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.1...v1.2.0-alpha.0) (2020-11-11)
+
+
+### Features
+
+* **core:** store data files in a single location ([c3299b6](https://github.com/ulixee/secret-agent/commit/c3299b6a0dc2fc42d7a7df3746ab34c2d8b15ea0))
+
+
+
+
+
 # [1.1.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.0.0-alpha.21...v1.1.0-alpha.0) (2020-11-03)
 
 **Note:** Version bump only for package @secret-agent/replay-frontend

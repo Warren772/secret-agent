@@ -1,14 +1,9 @@
 import { EventEmitter } from 'events';
+import ITypedEventEmitter from '@secret-agent/core-interfaces/ITypedEventEmitter';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
+import { IBoundLog } from '@secret-agent/core-interfaces/ILog';
 import { createPromise } from './utils';
-import ITypedEventEmitter from './interfaces/ITypedEventEmitter';
 import IPendingWaitEvent, { CanceledPromiseError } from './interfaces/IPendingWaitEvent';
-import { IBoundLog } from './Logger';
-
-export interface IRegisteredEventListener {
-  emitter: EventEmitter | ITypedEventEmitter<any>;
-  eventName: string | symbol;
-  handler: (...args: any[]) => void;
-}
 
 export function addEventListener(
   emitter: EventEmitter,
@@ -73,7 +68,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
   private eventsToLog = new Set<string | symbol>();
   private storedEvents: { eventType: keyof T & (string | symbol); event?: any }[] = [];
 
-  public cancelPendingEvents(message?: string, excludeEvents?: (keyof T & string)[]) {
+  public cancelPendingEvents(message?: string, excludeEvents?: (keyof T & string)[]): void {
     const events = [...this.pendingWaitEvents];
     this.pendingWaitEvents.length = 0;
     while (events.length) {
@@ -87,17 +82,20 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     }
   }
 
-  public setEventsToLog<K extends keyof T & (string | symbol)>(events: K[]) {
+  public setEventsToLog<K extends keyof T & (string | symbol)>(events: K[]): void {
     this.eventsToLog = new Set<string | symbol>(events);
   }
 
-  public async waitOn<K extends keyof T & (string | symbol)>(
+  public waitOn<K extends keyof T & (string | symbol)>(
     eventType: K,
     listenerFn?: (this: this, event?: T[K]) => boolean,
     timeoutMillis = 30e3,
     includeUnhandledEvents = false,
-  ) {
-    const promise = createPromise<T[K]>(timeoutMillis, `Timeout waiting for ${String(eventType)}`);
+  ): Promise<T[K]> {
+    const promise = createPromise<T[K]>(
+      timeoutMillis ?? 30e3,
+      `Timeout waiting for ${String(eventType)}`,
+    );
 
     this.pendingIdCounter += 1;
     const id = this.pendingIdCounter;
@@ -139,7 +137,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     eventType: K,
     listenerFn: (this: this, event?: T[K]) => any,
     includeUnhandledEvents = false,
-  ) {
+  ): this {
     super.on(eventType, listenerFn);
     if (includeUnhandledEvents) this.replayMissedEvents(eventType);
     else this.clearMissedEvents(eventType);
@@ -157,7 +155,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     eventType: K,
     listenerFn: (this: this, event?: T[K]) => any,
     includeUnhandledEvents = false,
-  ) {
+  ): this {
     super.once(eventType, listenerFn);
     if (includeUnhandledEvents) this.replayMissedEvents(eventType);
     else this.clearMissedEvents(eventType);
@@ -168,7 +166,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     eventType: K,
     event?: T[K],
     sendInitiator?: object,
-  ) {
+  ): boolean {
     if (!super.listenerCount(eventType)) {
       if (this.storeEventsWithoutListeners) {
         this.storedEvents.push({ eventType, event });
@@ -220,7 +218,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     return this;
   }
 
-  private clearMissedEvents(replayEventType: string | symbol) {
+  private clearMissedEvents(replayEventType: string | symbol): void {
     if (!this.storedEvents.length) return;
 
     const events = [...this.storedEvents];
@@ -232,7 +230,7 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     }
   }
 
-  private replayMissedEvents(replayEventType: string | symbol) {
+  private replayMissedEvents(replayEventType: string | symbol): void {
     if (!this.storedEvents.length) return;
 
     const events = [...this.storedEvents];
@@ -247,11 +245,25 @@ export class TypedEventEmitter<T> extends EventEmitter implements ITypedEventEmi
     }
   }
 
-  private logEvent<K extends keyof T & (string | symbol)>(eventType: K, event?: T[K]) {
+  private logEvent<K extends keyof T & (string | symbol)>(eventType: K, event?: T[K]): void {
     if (this.eventsToLog.has(eventType)) {
-      const data: any = { eventType };
-      if (event) data.eventBody = event;
-      this.logger?.stats('emit', data);
+      let data: any = event;
+      if (event) {
+        if (typeof event === 'object') {
+          if ((event as any).toJSON) {
+            data = (event as any).toJSON();
+          } else {
+            data = { ...event };
+            for (const [key, val] of Object.entries(data)) {
+              if (!val) continue;
+              if ((val as any).toJSON) {
+                data[key] = (val as any).toJSON();
+              }
+            }
+          }
+        }
+      }
+      this.logger?.stats(`emit:${eventType}`, data);
     }
   }
 }

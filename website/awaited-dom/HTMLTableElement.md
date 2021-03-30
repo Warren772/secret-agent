@@ -4,6 +4,90 @@
 
 ## Properties
 
+### elem.align <div class="specs"><i>W3C</i></div> {#align}
+
+Is a `string` containing an enumerated value reflecting the <code>align</code> attribute. It indicates the alignment of the element's contents with respect to the surrounding context. The possible values are <code>"left"</code>, <code>"right"</code>, and <code>"center"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.bgColor <div class="specs"><i>W3C</i></div> {#bgColor}
+
+Is a `string` containing the background color of the cells. It reflects the obsolete <code>bgcolor</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.border <div class="specs"><i>W3C</i></div> {#border}
+
+Is a `string` containing the width in pixels of the border of the table. It reflects the obsolete <code>border</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.caption <div class="specs"><i>W3C</i></div> {#caption}
+
+Is a&nbsp;<code>HTMLTableCaptionElement</code> representing the first <code>&lt;caption&gt;</code> that is a child of the element, or <code>null</code> if none is found. When set, if the object doesn't represent a <code>&lt;caption&gt;</code>, a <code>DOMException</code> with the <code>HierarchyRequestError</code> name is thrown. If a correct object is given, it is inserted in the tree as the first child of this element and the first <code>&lt;caption&gt;</code> that is a child of this element is removed from the tree, if any.
+
+#### **Type**: [`HTMLTableCaptionElement`](./html-table-caption-element)
+
+### elem.cellPadding <div class="specs"><i>W3C</i></div> {#cellPadding}
+
+Is a `string` containing the width in pixels of the horizontal and vertical sapce between cell content and cell borders. It reflects the obsolete <code>cellpadding</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.cellSpacing <div class="specs"><i>W3C</i></div> {#cellSpacing}
+
+Is a `string` containing the width in pixels of the horizontal and vertical separation between cells. It reflects the obsolete <code>cellspacing</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.frame <div class="specs"><i>W3C</i></div> {#frame}
+
+Is a `string` containing the type of the external borders of the table. It reflects the obsolete <code>frame</code> attribute and can take one of the following values: <code>"void"</code>, <code>"above"</code>, <code>"below"</code>, <code>"hsides"</code>, <code>"vsides"</code>, <code>"lhs"</code>, <code>"rhs"</code>, <code>"box"</code>, or <code>"border"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.rows <div class="specs"><i>W3C</i></div> {#rows}
+
+Returns a live <code>HTMLCollection</code> containing all the rows of the element, that is all <code>&lt;tr&gt;</code> that are a child of the element, or a child or one of its <code>&lt;thead&gt;</code>, <code>&lt;tbody&gt;</code> and <code>&lt;tfoot&gt;</code> children. The rows members of a <code>&lt;thead&gt;</code> appear first, in tree order, and those members of a <code>&lt;tbody&gt;</code> last, also in tree order. The <code>HTMLCollection</code> is live and is automatically updated when the <code>HTMLTableElement</code> changes.
+
+#### **Type**: [`SuperHTMLCollection`](./super-html-collection)
+
+### elem.rules <div class="specs"><i>W3C</i></div> {#rules}
+
+Is a `string` containing the type of the internal borders of the table. It reflects the obsolete <code>rules</code> attribute and can take one of the following values: <code>"none"</code>, <code>"groups"</code>, <code>"rows"</code>, <code>"cols"</code>, or <code>"all"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.summary <div class="specs"><i>W3C</i></div> {#summary}
+
+Is a `string` containing a description of the purpose or the structure of the table. It reflects the obsolete <code>summary</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.tBodies <div class="specs"><i>W3C</i></div> {#tBodies}
+
+Returns a live <code>HTMLCollection</code> containing all the <code>&lt;tbody&gt;</code> of the element. The <code>HTMLCollection</code> is live and is automatically updated when the <code>HTMLTableElement</code> changes.
+
+#### **Type**: [`SuperHTMLCollection`](./super-html-collection)
+
+### elem.tFoot <div class="specs"><i>W3C</i></div> {#tFoot}
+
+Is a&nbsp;<code>HTMLTableSectionElement</code> representing the first <code>&lt;tfoot&gt;</code> that is a child of the element, or <code>null</code> if none is found. When set, if the object doesn't represent a <code>&lt;tfoot&gt;</code>, a <code>DOMException</code> with the <code>HierarchyRequestError</code> name is thrown. If a correct object is given, it is inserted in the tree immediately before the first element that is neither a <code>&lt;caption&gt;</code>, a <code>&lt;colgroup&gt;</code>, nor a <code>&lt;thead&gt;</code>, or as the last child if there is no such element, and the first <code>&lt;tfoot&gt;</code> that is a child of this element is removed from the tree, if any.
+
+#### **Type**: [`HTMLTableSectionElement`](./html-table-section-element)
+
+### elem.tHead <div class="specs"><i>W3C</i></div> {#tHead}
+
+Is a&nbsp;<code>HTMLTableSectionElement</code> representing the first <code>&lt;thead&gt;</code> that is a child of the element, or <code>null</code> if none is found. When set, if the object doesn't represent a <code>&lt;thead&gt;</code>, a <code>DOMException</code> with the <code>HierarchyRequestError</code> name is thrown. If a correct object is given, it is inserted in the tree immediately before the first element that is neither a <code>&lt;caption&gt;</code>, nor a <code>&lt;colgroup&gt;</code>, or as the last child if there is no such element, and the first <code>&lt;thead&gt;</code> that is a child of this element is removed from the tree, if any.
+
+#### **Type**: [`HTMLTableSectionElement`](./html-table-section-element)
+
+### elem.width <div class="specs"><i>W3C</i></div> {#width}
+
+Is a `string` containing the length in pixels or in percentage of the desired width fo the entire table. It reflects the obsolete <code>width</code> attribute.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +188,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +264,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +300,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +461,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +532,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,59 +897,48 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `align` | `bgColor`
-`border` | `caption`
-`cellPadding` | `cellSpacing`
-`frame` | `rows`
-`rules` | `summary`
-`tBodies` | `tFoot`
-`tHead` | `width`
-`onfullscreenchange` | `onfullscreenerror`
+ | `onfullscreenchange` | `onfullscreenerror`
 `oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
-`onabort` | `onanimationend`
-`onanimationiteration` | `onanimationstart`
-`onauxclick` | `onblur`
-`oncancel` | `oncanplay`
-`oncanplaythrough` | `onchange`
-`onclick` | `onclose`
-`oncontextmenu` | `oncuechange`
-`ondblclick` | `ondrag`
-`ondragend` | `ondragenter`
-`ondragleave` | `ondragover`
-`ondragstart` | `ondrop`
-`ondurationchange` | `onemptied`
-`onended` | `onerror`
-`onfocus` | `onformdata`
-`ongotpointercapture` | `oninput`
-`oninvalid` | `onkeydown`
-`onkeypress` | `onkeyup`
-`onload` | `onloadeddata`
-`onloadedmetadata` | `onloadstart`
-`onlostpointercapture` | `onmousedown`
-`onmouseenter` | `onmouseleave`
-`onmousemove` | `onmouseout`
-`onmouseover` | `onmouseup`
-`onpause` | `onplay`
-`onplaying` | `onpointercancel`
-`onpointerdown` | `onpointerenter`
-`onpointerleave` | `onpointermove`
-`onpointerout` | `onpointerover`
-`onpointerup` | `onprogress`
-`onratechange` | `onreset`
-`onresize` | `onscroll`
-`onseeked` | `onseeking`
-`onselect` | `onselectionchange`
-`onselectstart` | `onstalled`
-`onsubmit` | `onsuspend`
-`ontimeupdate` | `ontouchcancel`
-`ontouchend` | `ontouchmove`
-`ontouchstart` | `ontransitionend`
-`onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onpaste` | `onabort`
+`onanimationend` | `onanimationiteration`
+`onanimationstart` | `onauxclick`
+`onblur` | `oncancel`
+`oncanplay` | `oncanplaythrough`
+`onchange` | `onclick`
+`onclose` | `oncontextmenu`
+`oncuechange` | `ondblclick`
+`ondrag` | `ondragend`
+`ondragenter` | `ondragleave`
+`ondragover` | `ondragstart`
+`ondrop` | `ondurationchange`
+`onemptied` | `onended`
+`onerror` | `onfocus`
+`onformdata` | `ongotpointercapture`
+`oninput` | `oninvalid`
+`onkeydown` | `onkeypress`
+`onkeyup` | `onload`
+`onloadeddata` | `onloadedmetadata`
+`onloadstart` | `onlostpointercapture`
+`onmousedown` | `onmouseenter`
+`onmouseleave` | `onmousemove`
+`onmouseout` | `onmouseover`
+`onmouseup` | `onpause`
+`onplay` | `onplaying`
+`onpointercancel` | `onpointerdown`
+`onpointerenter` | `onpointerleave`
+`onpointermove` | `onpointerout`
+`onpointerover` | `onpointerup`
+`onprogress` | `onratechange`
+`onreset` | `onresize`
+`onscroll` | `onseeked`
+`onseeking` | `onselect`
+`onselectionchange` | `onselectstart`
+`onstalled` | `onsubmit`
+`onsuspend` | `ontimeupdate`
+`ontouchcancel` | `ontouchend`
+`ontouchmove` | `ontouchstart`
+`ontransitionend` | `onvolumechange`
+`onwaiting` | `onwheel` | 
 
 #### Methods
 

@@ -4,6 +4,36 @@
 
 ## Properties
 
+### elem.align <div class="specs"><i>W3C</i></div> {#align}
+
+Is a `string` containing an enumerated value reflecting the <code>align</code> attribute. It indicates the alignment of the element's contents with respect to the surrounding context. The possible values are <code>"left"</code>, <code>"right"</code>, and <code>"center"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.ch <div class="specs"><i>W3C</i></div> {#ch}
+
+Is a `string` containing one single chararcter. This character is the one to align all the cell of a column on. It reflects the <code>char</code> and default to the decimal points associated with the language, e.g. <code>'.'</code> for English, or <code>','</code> for French. This property was optional and was not very well supported.
+
+#### **Type**: `Promise<string>`
+
+### elem.chOff <div class="specs"><i>W3C</i></div> {#chOff}
+
+Is a `string` containing a integer indicating how many characters must be left at the right (for left-to-right scripts; or at the left for right-to-left scripts) of the character defined by <code>HTMLTableRowElement.ch</code>. This property was optional and was not very well supported.
+
+#### **Type**: `Promise<string>`
+
+### elem.rows <div class="specs"><i>W3C</i></div> {#rows}
+
+Returns a live <code>HTMLCollection</code> containing the rows in the section. The <code>HTMLCollection</code> is live and is automatically updated when rows are added or removed.
+
+#### **Type**: [`SuperHTMLCollection`](./super-html-collection)
+
+### elem.vAlign <div class="specs"><i>W3C</i></div> {#vAlign}
+
+Is a `string` representing an enumerated value indicating how the content of the cell must be vertically aligned. It reflects the <code>valign</code> attribute and can have one of the following values: <code>"top"</code>, <code>"middle"</code>, <code>"bottom"</code>, or <code>"baseline"</code>.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +134,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +210,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +246,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +407,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +478,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,13 +843,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `align` | `ch`
-`chOff` | `rows`
-`vAlign` | `onfullscreenchange`
-`onfullscreenerror` | `oncopy`
-`oncut` | `onpaste`
-`style` | `contentEditable`
-`isContentEditable` | `onabort`
+ | `onfullscreenchange` | `onfullscreenerror`
+`oncopy` | `oncut`
+`onpaste` | `onabort`
 `onanimationend` | `onanimationiteration`
 `onanimationstart` | `onauxclick`
 `onblur` | `oncancel`
@@ -816,9 +884,7 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchcancel` | `ontouchend`
 `ontouchmove` | `ontouchstart`
 `ontransitionend` | `onvolumechange`
-`onwaiting` | `onwheel`
-`dataset` | `nonce`
-`tabIndex` | `assignedSlot` | 
+`onwaiting` | `onwheel` | 
 
 #### Methods
 

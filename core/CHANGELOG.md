@@ -3,6 +3,273 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.1...v1.4.1-alpha.0) (2021-03-23)
+
+
+### Bug Fixes
+
+* **client:** properly handle unhandled disconnect ([e3afedd](https://github.com/ulixee/secret-agent/commit/e3afedd90f0c614dab8ed5a02ba40de013e24b1d))
+* **core:** stop writing to db if it goes readonly ([9fc9e2f](https://github.com/ulixee/secret-agent/commit/9fc9e2f67ea5a5dd495fbfcb6946698c279c118c))
+* **core:** type serializer, fix null headers issue ([e4d832b](https://github.com/ulixee/secret-agent/commit/e4d832b62278c67c59edb7bb6d0b2097a6b8669b))
+* **emulator:** polyfill setAppBadge/clearAppBadge ([5cfa400](https://github.com/ulixee/secret-agent/commit/5cfa40082de419458656370622552c668b0a071f))
+* **mitm:** cached resources to use cached status ([26079b5](https://github.com/ulixee/secret-agent/commit/26079b5ee040efc7abbc57a422bb356f9b41a39e))
+* **mitm:** fix url error ([d53ae18](https://github.com/ulixee/secret-agent/commit/d53ae18a905fce3fea45a1e19edd9498ed4c54bd))
+* **puppet:** handle crashed windows ([290e923](https://github.com/ulixee/secret-agent/commit/290e923544008c3cd84b568c2d8a7c2f0de38437))
+
+
+### Features
+
+* **client:** expose frames ([44a6b12](https://github.com/ulixee/secret-agent/commit/44a6b129fef6f541cffc24e8913fd76defcf3aef))
+
+
+
+
+
+# [1.4.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.0...v1.4.0-alpha.1) (2021-03-11)
+
+**Note:** Version bump only for package @secret-agent/core
+
+
+
+
+
+# [1.4.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.3.1-alpha.1...v1.4.0-alpha.0) (2021-03-11)
+
+
+### Bug Fixes
+
+* **client:** fix close handling ([f413ea8](https://github.com/ulixee/secret-agent/commit/f413ea8c66b0e07512a7b6fbd0d9857bebad1d7c))
+* **client:** resource timeout + blank new tab ([4fdd378](https://github.com/ulixee/secret-agent/commit/4fdd3789edf9c2a7290b4deb660aa2d7194ec9c8))
+* **client:** translate errors when session n/a ([6c15793](https://github.com/ulixee/secret-agent/commit/6c15793f67cadfcf7d62e270848fbef895e397af))
+* **core:** exports not working <= node 14.12 ([d793601](https://github.com/ulixee/secret-agent/commit/d793601a052c243a541cf0331c79d00bc1332d1e))
+* **core:** handle canceled navigation redirect ([348c058](https://github.com/ulixee/secret-agent/commit/348c05863519ad6daaf8386c35a2b021883bd386))
+* **core:** try to fix tab test ([2f74a1e](https://github.com/ulixee/secret-agent/commit/2f74a1e48f2aa04d05c9826ac654de88686af597))
+* **ghost:** fix oom in bezierjs ([1d4ab06](https://github.com/ulixee/secret-agent/commit/1d4ab06c572f1d9aff7b8edd00ba9603c7da1f45))
+* **mitm:** don’t wait for browser resources ([4c70bd5](https://github.com/ulixee/secret-agent/commit/4c70bd5ae89bf38cda80049d522e0b25f842240d)), closes [#176](https://github.com/ulixee/secret-agent/issues/176)
+* **mitm:** try/catch around mitm throw areas ([e58b7a2](https://github.com/ulixee/secret-agent/commit/e58b7a2ba67ab6c5a435b83fa2b69b3ecc8f3465))
+* failing test ([a6ae58d](https://github.com/ulixee/secret-agent/commit/a6ae58dc02940fce6a9184d0d5adc1b2ee29bd45))
+* renamed some vars, removed chromium blocks, and modified BrowserFetcher ([60955b2](https://github.com/ulixee/secret-agent/commit/60955b259c15c887e20ae423ed8683caed80751d))
+* test reliability ([76aea40](https://github.com/ulixee/secret-agent/commit/76aea4051f71f489a62c15385a337b17a19afaf2))
+* **puppet:** extract linux chrome ([55f8ef5](https://github.com/ulixee/secret-agent/commit/55f8ef57ba410685697f5dc73f923026c8b0c4a6))
+* **puppet:** no chrome launch errors to client ([1e636a6](https://github.com/ulixee/secret-agent/commit/1e636a6625c47c67ee8a4e7d5be05ce99b513a5f))
+
+
+### Features
+
+* **client:** coreHost & disconnecting errors ([aed9fc3](https://github.com/ulixee/secret-agent/commit/aed9fc3f49996a661ab6b70e5446c9442649802a)), closes [#165](https://github.com/ulixee/secret-agent/issues/165)
+* **puppet:** switch to chrome ([d064e53](https://github.com/ulixee/secret-agent/commit/d064e53ace2107ac95348cf721c3cc35afe07efc))
+* **replay:** update for mac silicon + deps ([30ffec7](https://github.com/ulixee/secret-agent/commit/30ffec74fc06485b56344f17374a082d2055c1f1))
+
+
+
+
+
+## [1.3.1-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.3.1-alpha.0...v1.3.1-alpha.1) (2021-02-19)
+
+
+### Bug Fixes
+
+* pass all node vars to CoreProcess ([821a438](https://github.com/ulixee/secret-agent/commit/821a4381e1a79717b19e1a95ce3e2bbb1cc6177c))
+
+
+
+
+
+# [1.3.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.3...v1.3.0-alpha.4) (2021-02-15)
+
+
+### Bug Fixes
+
+* **core:** fix core shutdown test ([28dd09a](https://github.com/ulixee/secret-agent/commit/28dd09af20572a1ac2962abcde20599f119a3508))
+* **core:** only reject navigation with errors ([7e7cfd3](https://github.com/ulixee/secret-agent/commit/7e7cfd37cff860422d8c46bed90eba31652df9d5)), closes [#153](https://github.com/ulixee/secret-agent/issues/153)
+* **core/client:** export usable mjs/cjs ([ca149ef](https://github.com/ulixee/secret-agent/commit/ca149efbfbdf03da0fda7d127348e5de6f2a4f8b))
+* **mitm:** change log level of mitm request errors ([da9f98f](https://github.com/ulixee/secret-agent/commit/da9f98fe3df7feb79585b686ab9fe0474dea9e27))
+
+
+### Features
+
+* **client:** add http cache and load failures ([571e64f](https://github.com/ulixee/secret-agent/commit/571e64f108df7a0cbfd32609c37ff76261014dc6))
+* **emulate:** workers run stealth scripts ([e6e845e](https://github.com/ulixee/secret-agent/commit/e6e845e68654c73ddaefe2110065a20d044f773d))
+
+
+
+
+
+# [1.3.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.2...v1.3.0-alpha.3) (2021-02-11)
+
+
+### Bug Fixes
+
+* **core:** cancel interaction on navigate ([eaa6605](https://github.com/ulixee/secret-agent/commit/eaa6605d9325618cde2a281aa699ab4a6d82be83))
+* **core:** only wait for main frame ([52d36d8](https://github.com/ulixee/secret-agent/commit/52d36d81609f65105cc30667378d67155b271f76))
+* **puppet:** non-popups getting opener ([e79584f](https://github.com/ulixee/secret-agent/commit/e79584f5b71557bebe86b0301a8a0e9e55d8ac8f))
+
+
+
+
+
+# [1.3.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.1...v1.3.0-alpha.2) (2021-02-09)
+
+
+### Bug Fixes
+
+* **client:** correctly catch some canceled promise ([1d5906f](https://github.com/ulixee/secret-agent/commit/1d5906f5bff7e757bd084bb98883b56f3cf22bbe))
+* **mitm:** read failed/cached browser resources ([150db8b](https://github.com/ulixee/secret-agent/commit/150db8b3785705afdc54b915684ae0c828a5ecf8))
+
+
+
+
+
+# [1.3.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.0...v1.3.0-alpha.1) (2021-02-06)
+
+
+### Bug Fixes
+
+* sessionId should be set on browserEmulator regardless of user Profile ([083260d](https://github.com/ulixee/secret-agent/commit/083260dcfd47037879bf2bec8bed56f47eae8a41))
+
+
+### Features
+
+* replaced chrome 80, 81, 83 emulators with more robust os-level data ([276b269](https://github.com/ulixee/secret-agent/commit/276b26923368c5ed5636f65ad14fb2b3a9f87e9e))
+* **core:** friendly message setting cookies ([a9d9ecf](https://github.com/ulixee/secret-agent/commit/a9d9ecf054f6e21db037093fc255ae8fc26da3a7)), closes [#142](https://github.com/ulixee/secret-agent/issues/142)
+* **core:** tweak logging for not-really-errors ([bd5f9eb](https://github.com/ulixee/secret-agent/commit/bd5f9ebf38eb58adc14542dc4e32737b0ad8ff9e))
+
+
+
+
+
+# [1.3.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.5...v1.3.0-alpha.0) (2021-02-02)
+
+
+### Bug Fixes
+
+* **core:** full close down of on premature exit ([aa53e85](https://github.com/ulixee/secret-agent/commit/aa53e85782a57da4d69f8750a5c3719c60683f5b))
+* **core:** handle visible for height > innerHeight ([b7a1e65](https://github.com/ulixee/secret-agent/commit/b7a1e65dced687fb3df0677a26e6b56cc1e34c97))
+* **core:** isVisible fix, scroll below 0 fix ([7c0c451](https://github.com/ulixee/secret-agent/commit/7c0c451a2bf4675fc07205649ca78bc56fe7890c))
+* **emulators:** safari cookie handling fix ([3507c26](https://github.com/ulixee/secret-agent/commit/3507c2665afd6e94b5f99633e748fa4d455d81db))
+* **puppet:** launch non-default (83) headed chrome ([84a02aa](https://github.com/ulixee/secret-agent/commit/84a02aa48db41ecb3a1e831e56a4bf1fb805486e))
+* **replay:** fix replay launch in new setup on win ([add1b97](https://github.com/ulixee/secret-agent/commit/add1b97084d9d83f0cdad77362a238aeef92cf68))
+* allow setting SA_SHOW_REPLAY in a script ([18d63d6](https://github.com/ulixee/secret-agent/commit/18d63d640dc69e83512908bbdec1263aba87d953))
+* converted some props of IBrowserEmulator to optional ([8e74bed](https://github.com/ulixee/secret-agent/commit/8e74bed69d03bbc961292d4a3b89f9706cb1d555))
+* mitm session ports were getting reused and conflicting ([0e11465](https://github.com/ulixee/secret-agent/commit/0e11465d3882234e1cc650f372155458ea8bd6e1))
+* updated some things to work with Slab ([51dada5](https://github.com/ulixee/secret-agent/commit/51dada5d267ec05a6dbe3d1da9f62b4f3754d5a1))
+* viewports window width/height must include frame border width/height ([cca0c8e](https://github.com/ulixee/secret-agent/commit/cca0c8ec66bee1eafd7dcac2564eb8e0fc18747c))
+
+
+### Features
+
+* **client:** add ability to get agent metadata ([55df775](https://github.com/ulixee/secret-agent/commit/55df775b3b9e78db99bc726ae54a683cc701a7e2))
+* **client:** built-in remote + handlers ([bfaa739](https://github.com/ulixee/secret-agent/commit/bfaa739517a458db9dd1bd6374770840eb95b847))
+* **client:** coreConnection as configuration ([ac284ca](https://github.com/ulixee/secret-agent/commit/ac284cac3fa867a9623fd841edf96d04906e3072))
+* **core:** add getComputedStyles to tab ([0e3bccd](https://github.com/ulixee/secret-agent/commit/0e3bccd9c27ac1e6b122238ca7292182c169ebe6))
+* **core:** add screenshot capability ([f075f89](https://github.com/ulixee/secret-agent/commit/f075f89636edb81c4626c51929665373069de31a))
+* **core:** confirm mouse clicks hit targets ([bf2b047](https://github.com/ulixee/secret-agent/commit/bf2b047ca9e49665f7f150e66780b79fd02b7972))
+* **core:** convert all connections to server ([a27fafd](https://github.com/ulixee/secret-agent/commit/a27fafd9a04e52f602a557f7304164c2308006c6))
+* **core:** convert closing logs to stats ([382979d](https://github.com/ulixee/secret-agent/commit/382979df1a758de82297169465be0e57c2c87b53))
+* **core:** convert server to use websockets ([2d1804c](https://github.com/ulixee/secret-agent/commit/2d1804ce7521fe065c01491e3f5e084852369f55))
+* **core:** merge injected scripts into core ([f674f7b](https://github.com/ulixee/secret-agent/commit/f674f7b85a9cf66dd3558d849a78f6b9aa1099dc))
+* **core:** merge session-state and core ([dcc6002](https://github.com/ulixee/secret-agent/commit/dcc6002c2003d981267e51c8dacf5201fe3b9fda))
+* **core:** timeouts for back/fwd/goto, add reload ([bae2a8e](https://github.com/ulixee/secret-agent/commit/bae2a8eaf20b2a855c98986d5c2c9b5e11b004ec))
+* **core:** waitForLocation/Load takes a timeout ([02758c7](https://github.com/ulixee/secret-agent/commit/02758c7fc1e5394db84f91aa8235c3364b6c0692))
+* **core:** waitForPaintingStable ([1955b79](https://github.com/ulixee/secret-agent/commit/1955b791ce8a7cf20a679986e63885950efa6813))
+* **replay:** ability to launch via bin ([518d320](https://github.com/ulixee/secret-agent/commit/518d320e157b4d28e0ce99864c4f53aa5fa439a8))
+* **replay:** single install of replay ([5425bee](https://github.com/ulixee/secret-agent/commit/5425bee76488ac5bff4f46d8b99eb874dd7f5a35))
+* mv renderingOptions => blockedResourceTypes ([ffa1b74](https://github.com/ulixee/secret-agent/commit/ffa1b74d0b470387ec104027667e8523a51bfa15)), closes [#113](https://github.com/ulixee/secret-agent/issues/113)
+* **website:** blog post on handlers ([8024f03](https://github.com/ulixee/secret-agent/commit/8024f0343e63689afd9aba589e80816a5880f838))
+* browser window size now takes into calculation os nav bars ([ab65a65](https://github.com/ulixee/secret-agent/commit/ab65a650e4b63e77ad5e165f7a60e3e024140f66))
+* randomize the Viewports browser positionX/Y ([66c1f4a](https://github.com/ulixee/secret-agent/commit/66c1f4a89a434352ae5c8add46481c1f6d28f03f))
+
+
+### BREAKING CHANGES
+
+* renames “renderingOptions” to “blockedResourceTypes”. Default is now “None”
+
+
+
+
+
+# [1.2.0-alpha.5](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.4...v1.2.0-alpha.5) (2020-12-29)
+
+**Note:** Version bump only for package @secret-agent/core
+
+
+
+
+
+# [1.2.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.3...v1.2.0-alpha.4) (2020-12-22)
+
+**Note:** Version bump only for package @secret-agent/core
+
+
+
+
+
+# [1.2.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.2...v1.2.0-alpha.3) (2020-12-16)
+
+
+### Bug Fixes
+
+* **mitm:** bubble proxy errors properly to client ([b6a72f5](https://github.com/ulixee/secret-agent/commit/b6a72f59ef8e7739654ab82b170aa0e15d38ebd0)), closes [#98](https://github.com/ulixee/secret-agent/issues/98)
+* **replay:** multiple sessions showing incorrectly ([20ba30c](https://github.com/ulixee/secret-agent/commit/20ba30caebcef42de65dee18e6b82d92c7193d9c))
+
+
+### Features
+
+* **client:** update awaited dom to 1.1.8 ([a1b9b68](https://github.com/ulixee/secret-agent/commit/a1b9b68e735ee54ceaef3436c43df0d0744c8f47))
+
+
+
+
+
+# [1.2.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.1...v1.2.0-alpha.2) (2020-12-01)
+
+
+### Bug Fixes
+
+* **core:** fix errors on goto bubbling up ([30d4208](https://github.com/ulixee/secret-agent/commit/30d4208c079e171fd6e0640810a4812e0a9a3d59))
+* **emulate-humans:** fix some tests ([b1e05d7](https://github.com/ulixee/secret-agent/commit/b1e05d79168fdf60f4ba6c63b8b74441c5c52f56))
+* **eslint:** add return types to client code ([c2e31cc](https://github.com/ulixee/secret-agent/commit/c2e31ccba4974f2bda269e77e6df9b82a2695d4f))
+* **mitm:** remove auth as separate proxy param ([ec14b30](https://github.com/ulixee/secret-agent/commit/ec14b302ed6389769b61e77337ba9fe873a647ed))
+* **mitm-socket:** fix cpu spiking sockets ([b71e141](https://github.com/ulixee/secret-agent/commit/b71e14158c1bb948e9ce33abf01b4522930caafe))
+
+
+### Features
+
+* **proxy:** configure proxy via client + socks5 ([880c938](https://github.com/ulixee/secret-agent/commit/880c93803bebc78b835a8f2fb5133d633a315337))
+
+
+
+
+
+# [1.2.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.0...v1.2.0-alpha.1) (2020-11-20)
+
+
+### Bug Fixes
+
+* unwind some dependencies ([240bea6](https://github.com/ulixee/secret-agent/commit/240bea6ac7cb87bfcccbc56fb54043f5c2ff7b4b))
+
+
+### Features
+
+* **human-emulators:** ghost emulator ([70bcf27](https://github.com/ulixee/secret-agent/commit/70bcf273a2e995f8168dced9797d441b6eaec80b))
+
+
+
+
+
+# [1.2.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.1...v1.2.0-alpha.0) (2020-11-11)
+
+
+### Features
+
+* **awaited-dom:** documentation for props ([029a1f5](https://github.com/ulixee/secret-agent/commit/029a1f5b10cc13119d4bb808d35f80cce4aeb3dd))
+* **browser-emulators:** refactor emulator filenames ([b5da042](https://github.com/ulixee/secret-agent/commit/b5da0426e39aad64178659cc93f441f781f917ba))
+* **core:** store data files in a single location ([c3299b6](https://github.com/ulixee/secret-agent/commit/c3299b6a0dc2fc42d7a7df3746ab34c2d8b15ea0))
+
+
+
+
+
 # [1.1.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.0...v1.1.0-alpha.1) (2020-11-05)
 
 

@@ -2,6 +2,12 @@
 
 ## Properties
 
+### elem.compact <div class="specs"><i>W3C</i></div> {#compact}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -375,6 +381,24 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+Needs content.
+
+#### **Type**: `CSSStyleDeclaration`
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -430,6 +454,12 @@ Returns the <code>Element</code> which is the closest ancestor of the current el
       ex: <code>p:hover, .toto + q</code>
 
 #### **Returns**: [`SuperElement`](./super-element)
+
+### elem.computedStyleMap*()* <div class="specs"><i>W3C</i></div> {#computedStyleMap}
+
+Returns a <code>StylePropertyMapReadOnly</code> interface which provides a read-only representation of a CSS declaration block that is an alternative to <code>CSSStyleDeclaration</code>.
+
+#### **Returns**: `StylePropertyMapReadOnly`
 
 ### elem.getAttribute*(qualifiedName)* <div class="specs"><i>W3C</i></div> {#getAttribute}
 
@@ -769,11 +799,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `compact` | `onfullscreenchange`
-`onfullscreenerror` | `oncopy`
-`oncut` | `onpaste`
-`style` | `contentEditable`
-`isContentEditable` | `onabort`
+ | `onfullscreenchange` | `onfullscreenerror`
+`oncopy` | `oncut`
+`onpaste` | `onabort`
 `onanimationend` | `onanimationiteration`
 `onanimationstart` | `onauxclick`
 `onblur` | `oncancel`
@@ -820,20 +848,20 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `attachShadow()` | `computedStyleMap()`
-`insertAdjacentElement()` | `insertAdjacentHTML()`
-`insertAdjacentText()` | `releasePointerCapture()`
-`removeAttribute()` | `removeAttributeNode()`
-`removeAttributeNS()` | `scroll()`
-`scrollBy()` | `scrollTo()`
-`setAttribute()` | `setAttributeNode()`
-`setAttributeNodeNS()` | `setAttributeNS()`
-`setPointerCapture()` | `toggleAttribute()`
-`appendChild()` | `cloneNode()`
-`insertBefore()` | `removeChild()`
-`replaceChild()` | `addEventListener()`
-`dispatchEvent()` | `removeEventListener()`
-`animate()` | `getAnimations()`
-`after()` | `before()`
-`remove()` | `replaceWith()`
-`append()` | `prepend()` | 
+ | `attachShadow()` | `insertAdjacentElement()`
+`insertAdjacentHTML()` | `insertAdjacentText()`
+`releasePointerCapture()` | `removeAttribute()`
+`removeAttributeNode()` | `removeAttributeNS()`
+`scroll()` | `scrollBy()`
+`scrollTo()` | `setAttribute()`
+`setAttributeNode()` | `setAttributeNodeNS()`
+`setAttributeNS()` | `setPointerCapture()`
+`toggleAttribute()` | `appendChild()`
+`cloneNode()` | `insertBefore()`
+`removeChild()` | `replaceChild()`
+`addEventListener()` | `dispatchEvent()`
+`removeEventListener()` | `animate()`
+`getAnimations()` | `after()`
+`before()` | `remove()`
+`replaceWith()` | `append()`
+`prepend()` |  | 

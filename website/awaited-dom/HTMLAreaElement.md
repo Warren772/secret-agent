@@ -4,6 +4,72 @@
 
 ## Properties
 
+### elem.alt <div class="specs"><i>W3C</i></div> {#alt}
+
+Is a `string` that reflects the <code>alt</code> HTML attribute, containing alternative text for the element.
+
+#### **Type**: `Promise<string>`
+
+### elem.coords <div class="specs"><i>W3C</i></div> {#coords}
+
+Is a `string` that reflects the <code>coords</code> HTML attribute, containing coordinates to define the hot-spot region.
+
+#### **Type**: `Promise<string>`
+
+### elem.download <div class="specs"><i>W3C</i></div> {#download}
+
+Is a `string` indicating that the linked resource is intended to be downloaded rather than displayed in the browser. The value represent the proposed name of the file. If the name is not a valid filename of the underlying OS, browser will adapt it.
+
+#### **Type**: `Promise<string>`
+
+### elem.hreflang <div class="specs"><i>W3C</i></div> {#hreflang}
+
+Is a `string` containing that reflects the <code>hreflang</code> HTML attribute, indicating the language of the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.noHref <div class="specs"><i>W3C</i></div> {#noHref}
+
+Is a `boolean` flag indicating if the area is inactive (<code>true</code>) or active (<code>false</code>).
+
+#### **Type**: `Promise<boolean>`
+
+### elem.referrerPolicy <div class="specs"><i>W3C</i></div> {#referrerPolicy}
+
+Is a `string` that reflects the <code>referrerpolicy</code> HTML attribute indicating which referrer to use when fetching the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.rel <div class="specs"><i>W3C</i></div> {#rel}
+
+Is a `string` that reflects the <code>rel</code> HTML attribute, indicating relationships of the current document to the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.relList <div class="specs"><i>W3C</i></div> {#relList}
+
+Returns a <code>DOMTokenList</code> that reflects the <code>rel</code> HTML attribute, indicating relationships of the current document to the linked resource, as a list of tokens.
+
+#### **Type**: [`DOMTokenList`](./dom-token-list)
+
+### elem.shape <div class="specs"><i>W3C</i></div> {#shape}
+
+Is a `string` that reflects the <code>shape</code> HTML attribute, indicating the shape of the hot-spot, limited to known values.
+
+#### **Type**: `Promise<string>`
+
+### elem.target <div class="specs"><i>W3C</i></div> {#target}
+
+Is a `string` that reflects the <code>target</code> HTML attribute, indicating the browsing context in which to open the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.type <div class="specs"><i>W3C</i></div> {#type}
+
+Is a `string` that reflects the <code>type</code> HTML attribute, indicating the MIME type of the linked resource.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +170,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +246,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +282,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +443,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +514,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,21 +879,14 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `alt` | `coords`
-`download` | `hreflang`
-`noHref` | `referrerPolicy`
-`rel` | `relList`
-`shape` | `target`
-`type` | `onfullscreenchange`
-`onfullscreenerror` | `hash`
-`host` | `hostname`
-`href` | `origin`
-`password` | `pathname`
-`port` | `protocol`
-`search` | `username`
-`oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
+ | `onfullscreenchange` | `onfullscreenerror`
+`hash` | `host`
+`hostname` | `href`
+`origin` | `password`
+`pathname` | `port`
+`protocol` | `search`
+`username` | `oncopy`
+`oncut` | `onpaste`
 `onabort` | `onanimationend`
 `onanimationiteration` | `onanimationstart`
 `onauxclick` | `onblur`
@@ -825,9 +926,7 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchend` | `ontouchmove`
 `ontouchstart` | `ontransitionend`
 `onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onwheel` |  | 
 
 #### Methods
 

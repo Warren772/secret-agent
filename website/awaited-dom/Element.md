@@ -10,13 +10,13 @@
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -86,7 +86,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -122,7 +122,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -318,6 +318,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -659,8 +665,7 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `onfullscreenchange` | `onfullscreenerror`
-`assignedSlot` |  | 
+ | `onfullscreenchange` | `onfullscreenerror` | 
 
 #### Methods
 

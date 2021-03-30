@@ -1,0 +1,11 @@
+{
+  "browserId": "chrome-81-0",
+  "browserEngine": {
+    "id": "chrome-81-0",
+    "name": "chrome",
+    "fullVersion": "81.0.4044.138",
+    "features": ["headless"],
+    "executablePathEnvVar": "CHROME_81_BIN"
+  },
+  "marketshare": 0.4
+}

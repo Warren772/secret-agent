@@ -13,16 +13,12 @@ export default class ReplayResources {
   } = {};
 
   public onResource(
-    data: Buffer,
     resourceMeta: {
       url: string;
       headers: any;
-      tabId: string;
-      statusCode: number;
-      type: string;
-    },
+    } & Omit<IReplayResource, 'headers'>,
   ) {
-    const { url, headers, statusCode, type, tabId } = resourceMeta;
+    const { url, headers, statusCode, type, tabId, data } = resourceMeta;
     this.initResource(url);
 
     const headerMap = new Map<string, string>();
@@ -39,7 +35,7 @@ export default class ReplayResources {
     });
   }
 
-  public async get(urlStr: string) {
+  public async get(urlStr: string): Promise<IReplayHttpResource> {
     const url = urlStr.split('#').shift();
     this.initResource(url);
     const resource = await this.resources[url].promise;
@@ -54,15 +50,14 @@ export default class ReplayResources {
       headers.Location = resource.headers.get('location');
     }
 
-    let readable = new PassThrough();
+    let readable: PassThrough;
+
     if (resource.type === 'Document' && !isAllowedDocumentContentType(contentType)) {
-      readable.end(`<!DOCTYPE html><html><head></head><body></body></html>`);
+      readable = new PassThrough();
+      const doctype = await getDoctype(resource);
+      readable.end(`${doctype}<html><head></head><body></body></html>`);
     } else {
-      const encoding = resource.headers.get('content-encoding');
-      if (encoding) {
-        readable = readable.pipe(getDecodeStream(resource.data, encoding));
-      }
-      readable.end(resource.data);
+      readable = getResourceStream(resource);
     }
     return {
       data: readable,
@@ -78,6 +73,41 @@ export default class ReplayResources {
   }
 }
 
+export interface IReplayHttpResource {
+  data: PassThrough;
+  headers: { [key: string]: string | string[] };
+  statusCode: number;
+}
+
+function getResourceStream(resource: IReplayResource) {
+  const encoding = resource.headers.get('content-encoding');
+  let readable = new PassThrough({ autoDestroy: true });
+  if (encoding) {
+    readable = readable.pipe(getDecodeStream(resource.data[0], encoding));
+  }
+  readable.end(resource.data);
+  return readable;
+}
+
+async function getDoctype(resource: IReplayResource) {
+  if (resource.doctype !== undefined) return resource.doctype;
+  let str = '';
+  const readable = getResourceStream(resource);
+  for await (const chunk of readable) {
+    str += chunk.toString();
+    if (str.match(/<\s*html\s+/i)) break;
+  }
+  readable.destroy();
+
+  const doctype = str.toLowerCase().match(/^\s*<!DOCTYPE([^>]*?)>/i);
+  if (doctype) {
+    resource.doctype = `<!DOCTYPE ${doctype[1]}>\n`;
+  } else {
+    resource.doctype = '';
+  }
+  return resource.doctype;
+}
+
 function isAllowedDocumentContentType(contentType: string) {
   if (!contentType) return false;
   return (
@@ -85,7 +115,7 @@ function isAllowedDocumentContentType(contentType: string) {
   );
 }
 
-function getDecodeStream(buffer: Buffer, encoding: string) {
+function getDecodeStream(firstByte: number, encoding: string) {
   if (encoding === 'gzip' || encoding === 'x-gzip') {
     const zlibOptions = {
       flush: zlib.constants.Z_SYNC_FLUSH,
@@ -95,7 +125,7 @@ function getDecodeStream(buffer: Buffer, encoding: string) {
   }
 
   if (encoding === 'deflate' || encoding === 'x-deflate') {
-    if ((buffer[0] & 0x0f) === 0x08) {
+    if ((firstByte & 0x0f) === 0x08) {
       return zlib.createInflate();
     }
     return zlib.createInflateRaw();
@@ -107,7 +137,8 @@ function getDecodeStream(buffer: Buffer, encoding: string) {
 
 interface IReplayResource {
   data: Buffer;
-  tabId: string;
+  tabId: number;
+  doctype?: string;
   headers: Map<string, string>;
   type: string;
   statusCode: number;

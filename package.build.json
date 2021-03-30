@@ -4,16 +4,12 @@
   "license": "MIT",
   "scripts": {
     "start:website": "yarn workspace @secret-agent/website start",
-    "test": "cross-env SA_SHOW_REPLAY=false NODE_ENV=test CACHE_DIR=.cache-test jest"
+    "test": "cross-env SA_SHOW_REPLAY=false NODE_ENV=test SA_SESSIONS_DIR=.sessions-test jest"
   },
   "devDependencies": {
-    "jest": "^26.1.0",
+    "jest": "^26.6.3",
     "jest-summary-reporter": "^0.0.2",
-    "jest-environment-node": "^26.1.0",
-    "jest-junit": "^6.3.0",
-    "lerna": "^3.4.3",
-    "rimraf": "^3.0.0",
-    "source-map-support": "^0.5.16",
+    "jest-environment-node": "^26.6.2",
     "cross-env": "^7.0.2"
   },
   "workspaces": {
@@ -21,23 +17,17 @@
       "client",
       "core",
       "core-interfaces",
-      "core-server",
-      "emulators",
-      "emulator-plugins/*",
+      "emulate-browsers/*",
+      "emulate-humans/*",
       "full-client",
-      "humanoids",
-      "humanoid-plugins/*",
-      "injected-scripts",
       "puppet",
+      "puppet-interfaces",
       "puppet-chrome",
       "mitm",
       "mitm-socket",
-      "remote-client",
-      "remote-interfaces",
       "replay",
       "replay/frontend",
       "testing",
-      "session-state",
       "commons",
       "website"
     ]

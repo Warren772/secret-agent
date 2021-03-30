@@ -4,9 +4,9 @@
 
 ## What Properties and Methods Can I Use?
 
-<div>
-  <input type="text" placeholder="Search any DOM property, method, or interface..." />
-</div>
+Many readonly properties and methods have been implemented. We haven't added DOM manipulation APIs because we believe they are easy to detect by the website. We recommend performing actions as a human as much as possible (click, type, move the mouse, etc).
+
+On each documented class, you can find a list of the unimplemented methods and properties at the bottom.
 
 ## Introducing Supers
 
@@ -47,11 +47,10 @@ Supers give you access to all properties and methods of dependent classes.
 [HTMLButtonElement](/docs/awaited-dom/html-button-element) | [HTMLCanvasElement](/docs/awaited-dom/html-canvas-element)
 [HTMLDListElement](/docs/awaited-dom/htmld-list-element) | [HTMLDataElement](/docs/awaited-dom/html-data-element)
 [HTMLDataListElement](/docs/awaited-dom/html-data-list-element) | [HTMLDetailsElement](/docs/awaited-dom/html-details-element)
-[HTMLDialogElement](/docs/awaited-dom/html-dialog-element) | [HTMLDirectoryElement](/docs/awaited-dom/html-directory-element)
-[HTMLDivElement](/docs/awaited-dom/html-div-element) | [HTMLElement](/docs/awaited-dom/html-element)
-[HTMLEmbedElement](/docs/awaited-dom/html-embed-element) | [HTMLFieldSetElement](/docs/awaited-dom/html-field-set-element)
-[HTMLFontElement](/docs/awaited-dom/html-font-element) | [HTMLFormElement](/docs/awaited-dom/html-form-element)
-[HTMLFrameElement](/docs/awaited-dom/html-frame-element) | [HTMLFrameSetElement](/docs/awaited-dom/html-frame-set-element)
+[HTMLDialogElement](/docs/awaited-dom/html-dialog-element) | [HTMLDivElement](/docs/awaited-dom/html-div-element)
+[HTMLElement](/docs/awaited-dom/html-element) | [HTMLEmbedElement](/docs/awaited-dom/html-embed-element)
+[HTMLFieldSetElement](/docs/awaited-dom/html-field-set-element) | [HTMLFontElement](/docs/awaited-dom/html-font-element)
+[HTMLFormElement](/docs/awaited-dom/html-form-element) | [HTMLFrameSetElement](/docs/awaited-dom/html-frame-set-element)
 [HTMLHRElement](/docs/awaited-dom/htmlhr-element) | [HTMLHeadElement](/docs/awaited-dom/html-head-element)
 [HTMLHeadingElement](/docs/awaited-dom/html-heading-element) | [HTMLHtmlElement](/docs/awaited-dom/html-html-element)
 [HTMLIFrameElement](/docs/awaited-dom/htmli-frame-element) | [HTMLImageElement](/docs/awaited-dom/html-image-element)
@@ -99,8 +98,9 @@ Supers give you access to all properties and methods of dependent classes.
 
  |   |   | 
  | --- | --- | 
- | [XPathEvaluator](/docs/awaited-dom/x-path-evaluator) | [XPathExpression](/docs/awaited-dom/x-path-expression)
-[XPathNSResolver](/docs/awaited-dom/x-path-ns-resolver) | [XPathResult](/docs/awaited-dom/x-path-result) | 
+ | [XPathEvaluator](/docs/awaited-dom/x-path-evaluator) | [XPathEvaluatorBase](/docs/awaited-dom/x-path-evaluator-base)
+[XPathExpression](/docs/awaited-dom/x-path-expression) | [XPathNSResolver](/docs/awaited-dom/x-path-ns-resolver)
+[XPathResult](/docs/awaited-dom/x-path-result) |  | 
 
 
 ## Miscellaneous Interfaces

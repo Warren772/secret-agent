@@ -1,61 +1,57 @@
 // @ts-ignore
-import nodeCommon from '_http_common';
+import * as nodeCommon from '_http_common';
 import IResourceHeaders from '@secret-agent/core-interfaces/IResourceHeaders';
-import Log from '@secret-agent/commons/Logger';
 import * as http from 'http';
-import http2 from 'http2';
+import * as http2 from 'http2';
+import OriginType from '@secret-agent/core-interfaces/OriginType';
+import ResourceType from '@secret-agent/core-interfaces/ResourceType';
+import { URL } from 'url';
 import { parseRawHeaders } from '../lib/Utils';
 import IMitmRequestContext from '../interfaces/IMitmRequestContext';
 import ResourceState from '../interfaces/ResourceState';
 
-const { log } = Log(module);
+const redirectCodes = new Set([300, 301, 302, 303, 305, 307, 308]);
+
 export default class HeadersHandler {
-  public static async waitForBrowserRequest(ctx: IMitmRequestContext) {
-    ctx.setState(ResourceState.WaitForBrowserRequest);
+  public static async determineResourceType(ctx: IMitmRequestContext): Promise<void> {
+    ctx.setState(ResourceState.DetermineResourceType);
     const session = ctx.requestSession;
 
-    const { method, requestHeaders } = ctx;
+    const { method, requestHeaders, requestLowerHeaders } = ctx;
+
+    const fetchDest = requestLowerHeaders['sec-fetch-dest'] as string;
+    const fetchSite = requestLowerHeaders['sec-fetch-site'] as string;
+    const fetchMode = requestLowerHeaders['sec-fetch-mode'] as string;
+    const hasUserActivity = requestLowerHeaders['sec-fetch-user'] as string;
+    const isDocumentNavigation = fetchMode === 'navigate' && fetchDest === 'document';
+
+    // fill in known details
+    if (fetchSite) ctx.originType = fetchSite as OriginType;
+
+    if (fetchDest) ctx.resourceType = this.secFetchDestToResourceType(fetchDest as string);
+    if (method === 'OPTIONS') ctx.resourceType = 'Preflight';
+
+    if (hasUserActivity === '?1') ctx.hasUserGesture = true;
+    if (fetchMode) ctx.isUserNavigation = isDocumentNavigation && ctx.hasUserGesture;
+
+    session.browserRequestMatcher.onMitmRequestedResource(ctx);
 
     if (ctx.resourceType === 'Websocket') {
       ctx.browserRequestId = await session.getWebsocketUpgradeRequestId(requestHeaders);
-    } else {
-      const resource = await session.waitForBrowserResourceRequest(ctx);
-
-      if (!resource.resourceType) {
-        log.error('HeadersHandler.ErrorGettingResourceType', {
-          sessionId: ctx.requestSession.sessionId,
-          resource,
-          url: ctx.url,
-        });
-        throw Error('No resource type found for resource');
-      }
-      ctx.browserRequestId = resource.browserRequestId;
-      ctx.resourceType = resource.resourceType;
-      if (method === 'OPTIONS') {
-        ctx.resourceType = 'Preflight';
-      }
-      ctx.originType = resource.originType;
-      ctx.hasUserGesture = resource.hasUserGesture;
-      ctx.isUserNavigation = resource.isUserNavigation;
-      ctx.documentUrl = resource.documentUrl;
-      if (session.delegate?.documentHasUserActivity) {
-        const hasUserActivity = !!ctx.requestLowerHeaders['sec-fetch-user'];
-        if (hasUserActivity) {
-          await session.delegate?.documentHasUserActivity(resource.documentUrl);
-        }
-      }
+    } else if (!ctx.resourceType) {
+      await ctx.browserHasRequested;
     }
   }
 
-  public static modifyHeaders(ctx: IMitmRequestContext) {
+  public static modifyHeaders(ctx: IMitmRequestContext): void {
     ctx.setState(ResourceState.ModifyHeaders);
     const session = ctx.requestSession;
     if (ctx.isServerHttp2 === false && !ctx.requestLowerHeaders.host) {
       ctx.requestHeaders.Host = ctx.url.host;
       ctx.requestLowerHeaders.host = ctx.url.host;
     }
-    if (session.delegate?.modifyHeadersBeforeSend) {
-      const updatedHeaders = session.delegate.modifyHeadersBeforeSend({
+    if (session.networkInterceptorDelegate?.http.requestHeaders) {
+      const updatedHeaders = session.networkInterceptorDelegate.http.requestHeaders({
         method: ctx.method,
         resourceType: ctx.resourceType,
         isClientHttp2: ctx.isClientHttp2,
@@ -74,8 +70,8 @@ export default class HeadersHandler {
   public static cleanResponseHeaders(
     ctx: IMitmRequestContext,
     originalRawHeaders: IResourceHeaders,
-  ) {
-    const headers: { [name: string]: string | string[] } = {};
+  ): IResourceHeaders {
+    const headers: IResourceHeaders = {};
     for (const [key, value] of Object.entries(originalRawHeaders)) {
       const canonizedKey = key.trim();
       if (
@@ -101,7 +97,7 @@ export default class HeadersHandler {
       if (nodeCommon._checkInvalidHeaderChar(value)) continue;
 
       if (Array.isArray(value)) {
-        if (singleValueHttp2Headers.has(key)) {
+        if (singleValueHttp2Headers.has(key.toLowerCase())) {
           headers[canonizedKey] = value[0];
         } else {
           headers[canonizedKey] = [...value];
@@ -114,7 +110,16 @@ export default class HeadersHandler {
     return headers;
   }
 
-  public static sendRequestTrailers(ctx: IMitmRequestContext) {
+  public static checkForRedirectResponseLocation(context: IMitmRequestContext): URL {
+    if (redirectCodes.has(context.status)) {
+      const redirectLocation = context.responseHeaders.location || context.responseHeaders.Location;
+      if (redirectLocation) {
+        return new URL(redirectLocation as string, context.url);
+      }
+    }
+  }
+
+  public static sendRequestTrailers(ctx: IMitmRequestContext): void {
     const clientRequest = ctx.clientToProxyRequest;
     if (!clientRequest.trailers) return;
 
@@ -131,7 +136,7 @@ export default class HeadersHandler {
     }
   }
 
-  public static prepareRequestHeadersForHttp2(ctx: IMitmRequestContext) {
+  public static prepareRequestHeadersForHttp2(ctx: IMitmRequestContext): void {
     const url = ctx.url;
     if (ctx.isServerHttp2 && ctx.isClientHttp2 === false) {
       if (!ctx.requestHeaders[':path']) ctx.requestHeaders[':path'] = url.pathname + url.search;
@@ -144,7 +149,7 @@ export default class HeadersHandler {
     this.stripHttp1HeadersForHttp2(ctx);
   }
 
-  public static stripHttp1HeadersForHttp2(ctx: IMitmRequestContext) {
+  public static stripHttp1HeadersForHttp2(ctx: IMitmRequestContext): void {
     // TODO: should be part of an emulator for h2 headers
     for (const key of Object.keys(ctx.requestHeaders)) {
       const lowerKey = key.toLowerCase();
@@ -158,7 +163,7 @@ export default class HeadersHandler {
     }
   }
 
-  private static cleanRequestHeaders(ctx: IMitmRequestContext) {
+  private static cleanRequestHeaders(ctx: IMitmRequestContext): void {
     const headers = ctx.requestHeaders;
     const removeH2Headers = ctx.isServerHttp2 === false && ctx.isClientHttp2 === true;
     for (const header of Object.keys(headers)) {
@@ -168,6 +173,46 @@ export default class HeadersHandler {
       if (/^proxy-/i.test(header) || /^mitm-/i.test(header)) {
         delete headers[header];
       }
+    }
+  }
+
+  private static secFetchDestToResourceType(secFetchDest: string): ResourceType {
+    switch (secFetchDest) {
+      case 'document':
+      case 'iframe':
+      case 'nested-document': // guess
+        return 'Document';
+      case 'style':
+      case 'xslt': // not sure where this one goes
+        return 'Stylesheet';
+      case 'script':
+        return 'Script';
+      case 'empty':
+        return 'Fetch';
+      case 'font':
+        return 'Font';
+      case 'image':
+        return 'Image';
+      case 'video':
+      case 'audio':
+      case 'paintworklet': // guess
+      case 'audioworklet': // guess
+        return 'Media';
+      case 'manifest':
+        return 'Manifest';
+      case 'embed': // guess
+      case 'object': // guess
+        return 'Other';
+      case 'report': // guess
+        return 'CSP Violation Report';
+      case 'worker':
+      case 'serviceworker':
+      case 'sharedworker':
+        return 'Other';
+      case 'track': // guess
+        return 'Text Track';
+      default:
+        return null;
     }
   }
 }

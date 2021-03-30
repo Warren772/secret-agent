@@ -1,7 +1,7 @@
 import { v1 as uuidv1 } from 'uuid';
 import IScriptInstanceMeta from '@secret-agent/core-interfaces/IScriptInstanceMeta';
 import Log from '@secret-agent/commons/Logger';
-import CoreTab from './CoreTab';
+import CoreSession from './CoreSession';
 
 const { log } = Log(module);
 
@@ -19,25 +19,24 @@ export default class ScriptInstance {
     };
   }
 
-  public launchReplay(sessionName: string, coreTab: Promise<CoreTab>) {
+  public async launchReplay(session: CoreSession): Promise<void> {
     // eslint-disable-next-line global-require
     const { replay } = require('@secret-agent/replay/index');
-    coreTab
-      .then(tab => {
-        return replay({
-          scriptInstanceId: this.id,
-          sessionName,
-          sessionsDataLocation: tab.sessionsDataLocation,
-          replayApiServer: tab.replayApiServer,
-          sessionId: tab.sessionId,
-        });
-      })
-      .catch(err => {
-        log.warn('Unable to connect to CoreTab', { error: err, sessionId: this.id });
+    try {
+      await replay({
+        scriptInstanceId: this.id,
+        scriptStartDate: this.startDate,
+        sessionsDataLocation: session.sessionsDataLocation,
+        replayApiUrl: await session.replayApiUrl,
+        sessionId: session.sessionId,
+        sessionName: session.sessionName,
       });
+    } catch (error) {
+      log.warn('Error launching Replay application', { sessionId: session.sessionId, error });
+    }
   }
 
-  public generateSessionName(name: string, shouldCleanName = true) {
+  public generateSessionName(name: string, shouldCleanName = true): string {
     if (name && shouldCleanName) {
       name = cleanupSessionName(name);
     }
@@ -58,7 +57,7 @@ export default class ScriptInstance {
   }
 }
 
-function cleanupSessionName(name: string) {
+function cleanupSessionName(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9-]+/gi, '-')

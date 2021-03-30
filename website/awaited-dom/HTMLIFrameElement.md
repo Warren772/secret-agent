@@ -4,6 +4,120 @@
 
 ## Properties
 
+### elem.align <div class="specs"><i>W3C</i></div> {#align}
+
+Is a `string` that specifies the alignment of the frame with respect to the surrounding context.
+
+#### **Type**: `Promise<string>`
+
+### elem.allow <div class="specs"><i>W3C</i></div> {#allow}
+
+Is a list of origins the the frame is allowed to display content from. This attribute also accepts the values <code>self</code> and&nbsp;<code>src</code> which represent&nbsp;the origin in the iframe's src attribute. The default value is <code>src</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.allowFullscreen <div class="specs"><i>W3C</i></div> {#allowFullscreen}
+
+Is a `boolean` indicating whether the inline frame is willing to be placed into full screen mode. See Using full-screen mode for details.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.allowPaymentRequest <div class="specs"><i>W3C</i></div> {#allowPaymentRequest}
+
+Is a `boolean` indicating whether the Payment Request API&nbsp;may be invoked inside a cross-origin iframe.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.contentDocument <div class="specs"><i>W3C</i></div> {#contentDocument}
+
+Returns a <code>Document</code>, the active document in the inline frame's nested browsing context.
+
+#### **Type**: [`SuperDocument`](./super-document)
+
+### elem.csp <div class="specs"><i>W3C</i></div> {#csp}
+
+Specifies the Content Security Policy that an embedded document must agree to enforce upon itself.
+
+#### **Type**: `Promise<string>`
+
+### elem.featurePolicy <div class="specs"><i>W3C</i></div> {#featurePolicy}
+
+Returns the <code>FeaturePolicy</code> interface which provides a simple API for introspecting the feature policies applied to a specific document.
+
+#### **Type**: `FeaturePolicy`
+
+### elem.frameBorder <div class="specs"><i>W3C</i></div> {#frameBorder}
+
+Is a `string` that indicates whether to create borders between frames.
+
+#### **Type**: `Promise<string>`
+
+### elem.height <div class="specs"><i>W3C</i></div> {#height}
+
+Is a `string` that reflects the <code>height</code> HTML&nbsp;attribute, indicating the height of the frame.
+
+#### **Type**: `Promise<string>`
+
+### elem.longDesc <div class="specs"><i>W3C</i></div> {#longDesc}
+
+Is a `string` that contains the URI of a long description of the frame.
+
+#### **Type**: `Promise<string>`
+
+### elem.marginHeight <div class="specs"><i>W3C</i></div> {#marginHeight}
+
+Is a `string` being the height of the frame margin.
+
+#### **Type**: `Promise<string>`
+
+### elem.marginWidth <div class="specs"><i>W3C</i></div> {#marginWidth}
+
+Is a `string` being the width of the frame margin.
+
+#### **Type**: `Promise<string>`
+
+### elem.name <div class="specs"><i>W3C</i></div> {#name}
+
+Is a `string` that reflects the <code>name</code> HTML&nbsp;attribute, containing a name by which to refer to the frame.
+
+#### **Type**: `Promise<string>`
+
+### elem.referrerPolicy <div class="specs"><i>W3C</i></div> {#referrerPolicy}
+
+Is a `string` that reflects the <code>referrerpolicy</code> HTML attribute indicating which referrer to use when fetching the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.sandbox <div class="specs"><i>W3C</i></div> {#sandbox}
+
+Is a <code>DOMSettableTokenList</code> that reflects the <code>sandbox</code> HTML&nbsp;attribute, indicating extra restrictions on the behavior of the nested content.
+
+#### **Type**: [`DOMTokenList`](./dom-token-list)
+
+### elem.scrolling <div class="specs"><i>W3C</i></div> {#scrolling}
+
+Is a `string` that indicates whether the browser should provide scrollbars for the frame.
+
+#### **Type**: `Promise<string>`
+
+### elem.src <div class="specs"><i>W3C</i></div> {#src}
+
+Is a `string` that reflects the <code>src</code> HTML&nbsp;attribute, containing the address of the content to be embedded. Note that programatically removing an <code>&lt;iframe&gt;</code>'s src attribute (e.g. via <code>Element.removeAttribute()</code>) causes <code>about:blank</code> to be loaded in the frame in Firefox (from version 65), Chromium-based browsers, and Safari/iOS.
+
+#### **Type**: `Promise<string>`
+
+### elem.srcdoc <div class="specs"><i>W3C</i></div> {#srcdoc}
+
+Is a `string` that represents the content to display in the frame.
+
+#### **Type**: `Promise<string>`
+
+### elem.width <div class="specs"><i>W3C</i></div> {#width}
+
+Is a `string` that reflects the <code>width</code>&nbsp;HTML&nbsp;attribute, indicating the width of the frame.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +218,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +294,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +330,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +491,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +562,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,20 +927,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `align` | `allow`
-`allowFullscreen` | `allowPaymentRequest`
-`contentDocument` | `contentWindow`
-`csp` | `featurePolicy`
-`frameBorder` | `height`
-`longDesc` | `marginHeight`
-`marginWidth` | `name`
-`referrerPolicy` | `sandbox`
-`scrolling` | `src`
-`srcdoc` | `width`
-`onfullscreenchange` | `onfullscreenerror`
-`oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
+ | `contentWindow` | `onfullscreenchange`
+`onfullscreenerror` | `oncopy`
+`oncut` | `onpaste`
 `onabort` | `onanimationend`
 `onanimationiteration` | `onanimationstart`
 `onauxclick` | `onblur`
@@ -824,9 +969,7 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchend` | `ontouchmove`
 `ontouchstart` | `ontransitionend`
 `onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onwheel` |  | 
 
 #### Methods
 

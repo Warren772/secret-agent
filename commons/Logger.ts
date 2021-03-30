@@ -1,7 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
+import ILog, { ILogData } from '@secret-agent/core-interfaces/ILog';
+import { inspect } from 'util';
+
+const hasBeenLoggedSymbol = Symbol.for('hasBeenLogged');
+
 let logId = 0;
 class Log implements ILog {
-  public readonly level: string = process.env.DEBUG ? 'stats' : 'warn';
+  public readonly level: string = process.env.DEBUG ? 'stats' : 'error';
   private readonly module: string;
   private readonly logLevel: number;
   private readonly boundContext: any = {};
@@ -12,19 +17,19 @@ class Log implements ILog {
     if (boundContext) this.boundContext = boundContext;
   }
 
-  public stats(action: string, data?: ILogData) {
+  public stats(action: string, data?: ILogData): number {
     return this.log('stats', action, data);
   }
 
-  public info(action: string, data?: ILogData) {
+  public info(action: string, data?: ILogData): number {
     return this.log('info', action, data);
   }
 
-  public warn(action: string, data?: ILogData) {
+  public warn(action: string, data?: ILogData): number {
     return this.log('warn', action, data);
   }
 
-  public error(action: string, data?: ILogData) {
+  public error(action: string, data?: ILogData): number {
     return this.log('error', action, data);
   }
 
@@ -35,11 +40,11 @@ class Log implements ILog {
     });
   }
 
-  public flush() {
+  public flush(): void {
     // no-op
   }
 
-  private log(level: LogLevel, action: string, data?: ILogData) {
+  private log(level: LogLevel, action: string, data?: ILogData): number {
     let logData: object;
     let sessionId: string = this.boundContext.sessionId;
     let parentId: number;
@@ -72,22 +77,39 @@ class Log implements ILog {
         .replace('.js', '')
         .replace('.ts', '')
         .replace('build/', '');
-      const printData = {};
+      const printData: any = {};
+      let error: Error;
       for (const [key, value] of Object.entries(entry.data)) {
         if (value === undefined || value === null) continue;
         if (value instanceof Error) {
           printData[key] = value.toString();
+          Object.defineProperty(value, hasBeenLoggedSymbol, {
+            enumerable: false,
+            value: true,
+          });
+          error = value;
+        } else if ((value as any).toJSON) {
+          printData[key] = (value as any).toJSON();
         } else {
           printData[key] = value;
         }
       }
+
+      if (level === 'warn' || level === 'error') {
+        printData.sessionId = sessionId;
+        printData.sessionName = loggerSessionIdNames.get(sessionId) ?? undefined;
+      }
+
       const params = Object.keys(printData).length ? [printData] : [];
+      if (error) params.push(error);
+      const useColors =
+        process.env.NODE_DISABLE_COLORS !== 'true' && process.env.NODE_DISABLE_COLORS !== '1';
       // eslint-disable-next-line no-console
       console.log(
         `${entry.timestamp.toISOString()} ${entry.level.toUpperCase()} [${printablePath}] ${
           entry.action
         }`,
-        ...params,
+        ...params.map(x => inspect(x, false, null, useColors)),
       );
     }
     LogEvents.broadcast(entry);
@@ -97,7 +119,7 @@ class Log implements ILog {
 
 const logLevels = ['stats', 'info', 'warn', 'error'];
 
-let logCreator = (module: NodeModule) => {
+let logCreator = (module: NodeModule): { log: ILog } => {
   const log: ILog = new Log(module);
 
   return {
@@ -111,28 +133,30 @@ export default function logger(module: NodeModule): ILogBuilder {
 
 let idCounter = 0;
 
+const loggerSessionIdNames = new Map<string, string>();
+
 class LogEvents {
   private static subscriptions: { [id: number]: (log: ILogEntry) => any } = {};
 
-  public static unsubscribe(subscriptionId: number) {
+  public static unsubscribe(subscriptionId: number): void {
     delete LogEvents.subscriptions[subscriptionId];
   }
 
-  public static subscribe(onLogFn: (log: ILogEntry) => any) {
+  public static subscribe(onLogFn: (log: ILogEntry) => any): number {
     idCounter += 1;
     const id = idCounter;
     LogEvents.subscriptions[id] = onLogFn;
     return id;
   }
 
-  public static broadcast(entry: ILogEntry) {
+  public static broadcast(entry: ILogEntry): void {
     Object.values(LogEvents.subscriptions).forEach(x => x(entry));
   }
 }
 
-export { LogEvents };
+export { LogEvents, loggerSessionIdNames, hasBeenLoggedSymbol };
 
-export function injectLogger(builder: (module: NodeModule) => ILogBuilder) {
+export function injectLogger(builder: (module: NodeModule) => ILogBuilder): void {
   logCreator = builder;
 }
 
@@ -153,25 +177,7 @@ interface ILogBuilder {
   log: ILog;
 }
 
-export interface ILog extends IBoundLog<ILogData> {
-  level: string;
-  flush();
-}
-
-export interface IBoundLog<Base = any> {
-  stats<T extends Base>(action: string, data?: T): number;
-  info<T extends Base>(action: string, data?: T): number;
-  warn<T extends Base>(action: string, data?: T): number;
-  error<T extends Base>(action: string, data?: T): number;
-  createChild(module, boundData?: any): IBoundLog;
-}
-
-interface ILogData {
-  sessionId: string;
-  parentLogId?: number;
-}
-
-function extractPathFromModule(module: NodeModule) {
+function extractPathFromModule(module: NodeModule): string {
   const fullPath = typeof module === 'string' ? module : module.filename || module.id || '';
   return fullPath.replace(/^(.*)\/secret-agent\/(.*)$/, '$2');
 }

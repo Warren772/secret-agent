@@ -1,6 +1,6 @@
-import net from 'net';
-import http from 'http';
-import Log from '@secret-agent/commons/Logger';
+import * as net from 'net';
+import * as http from 'http';
+import Log, { hasBeenLoggedSymbol } from '@secret-agent/commons/Logger';
 import MitmRequestContext from '../lib/MitmRequestContext';
 import CookieHandler from './CookieHandler';
 import BaseHttpHandler from './BaseHttpHandler';
@@ -20,7 +20,7 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
     this.clientSocket.on('error', this.onError.bind(this, 'ClientToProxy.UpgradeSocketError'));
   }
 
-  public async onUpgrade() {
+  public async onUpgrade(): Promise<void> {
     try {
       const proxyToServerRequest = await this.createProxyToServerRequest();
       if (!proxyToServerRequest) return;
@@ -32,7 +32,7 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
     }
   }
 
-  protected onError(errorType: string, error: Error) {
+  protected onError(errorType: string, error: Error): void {
     const socket = this.clientSocket;
     const context = this.context;
     const url = context.url.href;
@@ -42,8 +42,8 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
 
     session.emit('http-error', { request: MitmRequestContext.toEmittedResource(context), error });
 
-    if (!(error as any)?.isLogged) {
-      log.error(`MitmWebSocket.${errorType}`, {
+    if (!error[hasBeenLoggedSymbol]) {
+      log.info(`MitmWebSocketUpgrade.${errorType}`, {
         sessionId,
         error,
         url,
@@ -56,7 +56,7 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
     serverResponse: http.IncomingMessage,
     serverSocket: net.Socket,
     serverHead: Buffer,
-  ) {
+  ): Promise<void> {
     this.context.setState(ResourceState.ServerToProxyOnResponse);
     serverSocket.pause();
     MitmRequestContext.readHttp1Response(this.context, serverResponse);
@@ -71,8 +71,12 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
     proxyToServerMitmSocket.on('close', () => {
       this.context.setState(ResourceState.End);
       // don't try to write again
-      clientSocket.destroy();
-      serverSocket.destroy();
+      try {
+        clientSocket.destroy();
+        serverSocket.destroy();
+      } catch (err) {
+        // no-operation
+      }
     });
 
     // copy response message (have to write to raw socket)
@@ -89,7 +93,11 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
 
     if (!serverSocket.readable || !serverSocket.writable) {
       this.context.setState(ResourceState.PrematurelyClosed);
-      return serverSocket.destroy();
+      try {
+        return serverSocket.destroy();
+      } catch (error) {
+        // don't log if error
+      }
     }
     serverSocket.on('error', this.onError.bind(this, 'ServerToProxy.UpgradeSocketError'));
 
@@ -119,7 +127,7 @@ export default class HttpUpgradeHandler extends BaseHttpHandler {
       socket: net.Socket;
       head: Buffer;
     },
-  ) {
+  ): Promise<void> {
     const handler = new HttpUpgradeHandler(request, request.socket, request.head);
     await handler.onUpgrade();
   }

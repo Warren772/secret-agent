@@ -1,11 +1,14 @@
 import { Protocol } from 'devtools-protocol';
 import { getResourceTypeForChromeValue } from '@secret-agent/core-interfaces/ResourceType';
 import * as eventUtils from '@secret-agent/commons/eventUtils';
-import { IRegisteredEventListener, TypedEventEmitter } from '@secret-agent/commons/eventUtils';
-import { IPuppetNetworkEvents } from '@secret-agent/puppet/interfaces/IPuppetNetworkEvents';
-import IBrowserEmulation from '@secret-agent/puppet/interfaces/IBrowserEmulation';
-import { IBoundLog } from '@secret-agent/commons/Logger';
+import { TypedEventEmitter } from '@secret-agent/commons/eventUtils';
+import { IPuppetNetworkEvents } from '@secret-agent/puppet-interfaces/IPuppetNetworkEvents';
+import IBrowserEmulationSettings from '@secret-agent/puppet-interfaces/IBrowserEmulationSettings';
 import { CanceledPromiseError } from '@secret-agent/commons/interfaces/IPendingWaitEvent';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
+import { IBoundLog } from '@secret-agent/core-interfaces/ILog';
+import IHttpResourceLoadDetails from '@secret-agent/core-interfaces/IHttpResourceLoadDetails';
+import { URL } from 'url';
 import { CDPSession } from './CDPSession';
 import AuthChallengeResponse = Protocol.Fetch.AuthChallengeResponseResponse;
 import Fetch = Protocol.Fetch;
@@ -15,13 +18,32 @@ import WebSocketFrameReceivedEvent = Protocol.Network.WebSocketFrameReceivedEven
 import WebSocketWillSendHandshakeRequestEvent = Protocol.Network.WebSocketWillSendHandshakeRequestEvent;
 import ResponseReceivedEvent = Protocol.Network.ResponseReceivedEvent;
 import RequestPausedEvent = Protocol.Fetch.RequestPausedEvent;
+import LoadingFinishedEvent = Protocol.Network.LoadingFinishedEvent;
+import LoadingFailedEvent = Protocol.Network.LoadingFailedEvent;
+import RequestServedFromCacheEvent = Protocol.Network.RequestServedFromCacheEvent;
+import RequestWillBeSentExtraInfoEvent = Protocol.Network.RequestWillBeSentExtraInfoEvent;
+
+type ResourceRequest = IHttpResourceLoadDetails & {
+  frameId?: string;
+  redirectedFromUrl?: string;
+};
+
+interface IResourcePublishing {
+  hasRequestWillBeSentEvent: boolean;
+  emitTimeout?: NodeJS.Timeout;
+  isPublished?: boolean;
+  isDetailsEmitted?: boolean;
+}
 
 export class NetworkManager extends TypedEventEmitter<IPuppetNetworkEvents> {
   protected readonly logger: IBoundLog;
   private readonly cdpSession: CDPSession;
   private readonly attemptedAuthentications = new Set<string>();
-  private readonly publishedResources = new Set<string>();
-  private emulation?: IBrowserEmulation;
+  private readonly requestsById = new Map<string, ResourceRequest>();
+  private readonly requestPublishingById = new Map<string, IResourcePublishing>();
+
+  private readonly navigationRequestIds = new Set<string>();
+  private emulation?: IBrowserEmulationSettings;
 
   private parentManager?: NetworkManager;
   private readonly registeredEvents: IRegisteredEventListener[];
@@ -39,7 +61,11 @@ export class NetworkManager extends TypedEventEmitter<IPuppetNetworkEvents> {
       ['Network.webSocketFrameSent', this.onWebsocketFrame.bind(this, false)],
 
       ['Network.requestWillBeSent', this.onNetworkRequestWillBeSent.bind(this)],
+      ['Network.requestWillBeSentExtraInfo', this.onNetworkRequestWillBeSentExtraInfo.bind(this)],
       ['Network.responseReceived', this.onNetworkResponseReceived.bind(this)],
+      ['Network.loadingFinished', this.onLoadingFinished.bind(this)],
+      ['Network.loadingFailed', this.onLoadingFailed.bind(this)],
+      ['Network.requestServedFromCache', this.onNetworkRequestServedFromCache.bind(this)],
     ]);
   }
 
@@ -52,34 +78,49 @@ export class NetworkManager extends TypedEventEmitter<IPuppetNetworkEvents> {
     return super.emit(eventType, event);
   }
 
-  public async initialize(emulation: IBrowserEmulation) {
+  public setUserAgentOverrides(emulation: IBrowserEmulationSettings): Promise<void> {
     this.emulation = emulation;
-
-    await Promise.all([
-      this.cdpSession.send('Network.setUserAgentOverride', {
-        userAgent: emulation.userAgent,
-        acceptLanguage: emulation.locale,
-        platform: emulation.platform,
-      }),
-      this.cdpSession.send('Network.enable', {
-        maxPostDataSize: 0,
-        maxResourceBufferSize: 0,
-        maxTotalBufferSize: 0,
-      }),
-      this.cdpSession.send('Fetch.enable', {
-        handleAuthRequests: true,
-      }),
-    ]);
+    return this.cdpSession.send('Network.setUserAgentOverride', {
+      userAgent: emulation.userAgent,
+      acceptLanguage: emulation.locale,
+      platform: emulation.platform,
+    });
   }
 
-  public close() {
+  public async initialize(): Promise<void> {
+    const errors = await Promise.all([
+      this.cdpSession
+        .send('Network.enable', {
+          maxPostDataSize: 0,
+          maxResourceBufferSize: 0,
+          maxTotalBufferSize: 0,
+        })
+        .catch(err => err),
+      this.cdpSession
+        .send('Fetch.enable', {
+          handleAuthRequests: true,
+        })
+        .catch(err => err),
+    ]);
+    for (const error of errors) {
+      if (error && error instanceof Error) throw error;
+    }
+  }
+
+  public close(): void {
     eventUtils.removeEventListeners(this.registeredEvents);
     this.cancelPendingEvents('NetworkManager closed');
   }
 
-  public async initializeFromParent(parentManager: NetworkManager) {
+  public async initializeFromParent(parentManager: NetworkManager): Promise<void> {
     this.parentManager = parentManager;
-    return this.initialize(parentManager.emulation);
+    const errors = await Promise.all([
+      this.setUserAgentOverrides(parentManager.emulation).catch(err => err),
+      this.initialize().catch(err => err),
+    ]);
+    for (const error of errors) {
+      if (error && error instanceof Error) throw error;
+    }
   }
 
   private onAuthRequired(event: Protocol.Fetch.AuthRequiredEvent): void {
@@ -111,97 +152,293 @@ export class NetworkManager extends TypedEventEmitter<IPuppetNetworkEvents> {
       });
   }
 
-  private onRequestPaused(networkRequest: RequestPausedEvent) {
-    this.cdpSession
-      .send('Fetch.continueRequest', {
+  private async onRequestPaused(networkRequest: RequestPausedEvent): Promise<void> {
+    try {
+      await this.cdpSession.send('Fetch.continueRequest', {
         requestId: networkRequest.requestId,
-      })
-      .catch(error => {
-        if (error instanceof CanceledPromiseError) return;
-        this.logger.info('NetworkManager.continueRequestError', {
-          error,
-          requestId: networkRequest.requestId,
-          url: networkRequest.request.url,
-        });
       });
+    } catch (error) {
+      if (error instanceof CanceledPromiseError) return;
+      this.logger.info('NetworkManager.continueRequestError', {
+        error,
+        requestId: networkRequest.requestId,
+        url: networkRequest.request.url,
+      });
+    }
 
-    const resource = <IPuppetNetworkEvents['resource-will-be-requested']>{
-      browserRequestId: networkRequest.requestId,
+    // networkId corresponds to onNetworkRequestWillBeSent
+    const resource = <ResourceRequest>{
+      browserRequestId: networkRequest.networkId ?? networkRequest.requestId,
       resourceType: getResourceTypeForChromeValue(networkRequest.resourceType),
-      url: networkRequest.request.url,
+      url: new URL(networkRequest.request.url),
       method: networkRequest.request.method,
+      isSSL: networkRequest.request.url.startsWith('https'),
+      isFromRedirect: false,
+      isUpgrade: false,
+      isHttp2Push: false,
+      isServerHttp2: false,
+      isClientHttp2: false,
+      requestTime: new Date(),
+      clientAlpn: null,
       hasUserGesture: false,
-      origin: networkRequest.request.headers.Origin,
-      referer: networkRequest.request.headers.Referer,
       documentUrl: networkRequest.request.headers.Referer,
-      isDocumentNavigation: false,
       frameId: networkRequest.frameId,
-      redirectedFromUrl: null,
     };
+
+    const existing = this.requestsById.get(resource.browserRequestId);
+
+    if (existing) {
+      if (existing.url === resource.url) {
+        resource.requestHeaders = existing.requestHeaders ?? {};
+        resource.requestLowerHeaders = existing.requestLowerHeaders ?? {};
+        resource.requestOriginalHeaders = existing.requestOriginalHeaders ?? {};
+      }
+
+      if (existing.resourceType) resource.resourceType = existing.resourceType;
+      resource.redirectedFromUrl = existing.redirectedFromUrl;
+    }
+    this.mergeRequestHeaders(resource, networkRequest.request.headers);
+
+    if (networkRequest.networkId && !this.requestsById.has(networkRequest.networkId)) {
+      this.requestsById.set(networkRequest.networkId, resource);
+    }
+    if (networkRequest.requestId !== networkRequest.networkId) {
+      this.requestsById.set(networkRequest.requestId, resource);
+    }
+
     // requests from service workers (and others?) will never register with RequestWillBeSentEvent
     // -- they don't have networkIds
-    if (!networkRequest.networkId) {
-      this.emitResource(resource);
-    } else {
-      // send on delay in case we never get a Network.requestWillBeSent (happens for certain types of requests)
-      setTimeout(this.emitResource.bind(this), 500, resource).unref();
-    }
+    this.emitResourceRequested(resource.browserRequestId);
   }
 
-  private onNetworkRequestWillBeSent(networkRequest: RequestWillBeSentEvent) {
+  private onNetworkRequestWillBeSent(networkRequest: RequestWillBeSentEvent): void {
+    const redirectedFromUrl = networkRequest.redirectResponse?.url;
+
     const isNavigation =
       networkRequest.requestId === networkRequest.loaderId && networkRequest.type === 'Document';
+    if (isNavigation) {
+      this.navigationRequestIds.add(networkRequest.requestId);
+    }
 
-    const redirectedFromUrl = networkRequest.redirectResponse?.url;
-    const resource = {
+    const resource = <ResourceRequest>{
+      url: new URL(networkRequest.request.url),
+      isSSL: networkRequest.request.url.startsWith('https'),
+      isFromRedirect: !!redirectedFromUrl,
+      isUpgrade: false,
+      isHttp2Push: false,
+      isServerHttp2: false,
+      isClientHttp2: false,
+      requestTime: new Date(networkRequest.wallTime * 1e3),
+      clientAlpn: null,
       browserRequestId: networkRequest.requestId,
       resourceType: getResourceTypeForChromeValue(networkRequest.type),
-      url: networkRequest.request.url,
       method: networkRequest.request.method,
       hasUserGesture: networkRequest.hasUserGesture,
       documentUrl: networkRequest.documentURL,
-      origin: networkRequest.request.headers.Origin,
-      referer: networkRequest.request.headers.Referer,
-      isDocumentNavigation: isNavigation,
-      frameId: networkRequest.frameId,
       redirectedFromUrl,
+      frameId: networkRequest.frameId,
     };
-    const didEmit = this.emitResource(resource);
-    if (!didEmit) {
-      // this can happen in 2 cases observed so far:
-      // 1: the fetch comes first and Network.requestWillBeSent takes > 500 ms
-      // 2: a duplicated resource is loaded across frames and piggybacks the first request
-      this.logger.info('ResourceEmittedTwice', resource);
+
+    const publishing = this.getPublishingForRequestId(resource.browserRequestId, true);
+    publishing.hasRequestWillBeSentEvent = true;
+
+    const existing = this.requestsById.get(resource.browserRequestId);
+
+    const isNewRedirect = redirectedFromUrl && existing && existing.url !== resource.url;
+
+    // NOTE: same requestId will be used in devtools for redirected resources
+    if (existing) {
+      if (isNewRedirect) {
+        publishing.isPublished = false;
+        clearTimeout(publishing.emitTimeout);
+        publishing.emitTimeout = undefined;
+      } else {
+        // preserve headers and frameId from a fetch or networkWillRequestExtraInfo
+        resource.requestHeaders = existing.requestHeaders ?? {};
+        resource.requestLowerHeaders = existing.requestLowerHeaders ?? {};
+        resource.requestOriginalHeaders = existing.requestOriginalHeaders ?? {};
+      }
+    }
+
+    this.requestsById.set(resource.browserRequestId, resource);
+    this.mergeRequestHeaders(resource, networkRequest.request.headers);
+
+    this.emitResourceRequested(resource.browserRequestId);
+  }
+
+  private onNetworkRequestWillBeSentExtraInfo(
+    networkRequest: RequestWillBeSentExtraInfoEvent,
+  ): void {
+    const requestId = networkRequest.requestId;
+    let resource = this.requestsById.get(requestId);
+    if (!resource) {
+      resource = {} as any;
+      this.requestsById.set(requestId, resource);
+    }
+
+    this.mergeRequestHeaders(resource, networkRequest.headers);
+
+    const hasNetworkRequest =
+      this.requestPublishingById.get(requestId)?.hasRequestWillBeSentEvent === true;
+    if (hasNetworkRequest) {
+      this.doEmitResourceRequested(resource.browserRequestId);
     }
   }
 
-  private emitResource(event: IPuppetNetworkEvents['resource-will-be-requested']) {
-    // NOTE: same requestId will be used in devtools for redirected resources
-    if (this.publishedResources.has(`${event.browserRequestId}_${event.url}`)) return false;
-    this.publishedResources.add(`${event.browserRequestId}_${event.url}`);
-
-    this.emit('resource-will-be-requested', event);
-    return true;
+  private mergeRequestHeaders(
+    resource: IHttpResourceLoadDetails,
+    requestHeaders: RequestWillBeSentEvent['request']['headers'],
+  ): void {
+    resource.requestHeaders ??= {};
+    resource.requestOriginalHeaders ??= {};
+    resource.requestLowerHeaders ??= {};
+    for (const [key, value] of Object.entries(requestHeaders)) {
+      const lowerKey = key.toLowerCase();
+      resource.requestLowerHeaders[lowerKey] = value;
+      resource.requestOriginalHeaders[key] = value;
+      resource.requestHeaders[key] = value;
+    }
   }
 
-  private async onNetworkResponseReceived(event: ResponseReceivedEvent) {
+  private emitResourceRequested(browserRequestId: string): void {
+    const resource = this.requestsById.get(browserRequestId);
+    if (!resource) return;
+
+    const publishing = this.getPublishingForRequestId(browserRequestId, true);
+    // if we're already waiting, go ahead and publish now
+    if (publishing.emitTimeout && !publishing.isPublished) {
+      this.doEmitResourceRequested(browserRequestId);
+      return;
+    }
+
+    // give it a small period to add extra info. no network id means it's running outside the normal "requestWillBeSent" flow
+    publishing.emitTimeout = setTimeout(
+      this.doEmitResourceRequested.bind(this),
+      200,
+      browserRequestId,
+    ).unref();
+  }
+
+  private doEmitResourceRequested(browserRequestId: string): boolean {
+    const resource = this.requestsById.get(browserRequestId);
+    if (!resource) return false;
+    if (!resource.url) return false;
+
+    const publishing = this.getPublishingForRequestId(browserRequestId, true);
+    clearTimeout(publishing.emitTimeout);
+    publishing.emitTimeout = undefined;
+
+    const event = <IPuppetNetworkEvents['resource-will-be-requested']>{
+      resource,
+      isDocumentNavigation: this.navigationRequestIds.has(browserRequestId),
+      frameId: resource.frameId,
+      redirectedFromUrl: resource.redirectedFromUrl,
+    };
+
+    // NOTE: same requestId will be used in devtools for redirected resources
+    if (!publishing.isPublished) {
+      publishing.isPublished = true;
+      this.emit('resource-will-be-requested', event);
+    } else if (!publishing.isDetailsEmitted) {
+      publishing.isDetailsEmitted = true;
+      this.emit('resource-was-requested', event);
+    }
+  }
+
+  private onNetworkResponseReceived(event: ResponseReceivedEvent): void {
     const { response, requestId, loaderId, frameId, type } = event;
 
-    const isNavigation = requestId === loaderId && type === 'Document';
-    if (!isNavigation) return;
+    const resource = this.requestsById.get(requestId);
+    if (resource) {
+      resource.responseHeaders = response.headers;
+      resource.status = response.status;
+      resource.statusMessage = response.statusText;
+      resource.remoteAddress = `${response.remoteIPAddress}:${response.remotePort}`;
+      resource.clientAlpn = response.protocol;
+      resource.responseUrl = response.url;
+      resource.responseTime = new Date();
+      if (response.fromDiskCache) resource.browserServedFromCache = 'disk';
+      if (response.fromServiceWorker) resource.browserServedFromCache = 'service-worker';
+      if (response.fromPrefetchCache) resource.browserServedFromCache = 'prefetch';
 
-    this.emit('navigation-response', {
-      frameId,
-      browserRequestId: requestId,
-      status: response.status,
-      location: response.headers.location,
-      url: response.url,
-    });
+      if (response.requestHeaders) this.mergeRequestHeaders(resource, response.requestHeaders);
+      if (!resource.url) {
+        resource.url = new URL(response.url);
+        resource.frameId = frameId;
+        resource.browserRequestId = requestId;
+      }
+      if (!this.requestPublishingById.get(requestId)?.isPublished && resource.url?.href) {
+        this.doEmitResourceRequested(requestId);
+      }
+    }
+
+    const isNavigation = requestId === loaderId && type === 'Document';
+    if (isNavigation) {
+      this.emit('navigation-response', {
+        frameId,
+        browserRequestId: requestId,
+        status: response.status,
+        location: response.headers.location,
+        url: response.url,
+      });
+    }
   }
 
+  private onNetworkRequestServedFromCache(event: RequestServedFromCacheEvent): void {
+    const { requestId } = event;
+    const resource = this.requestsById.get(requestId);
+    if (resource) {
+      resource.browserServedFromCache = 'memory';
+      setTimeout(() => this.emitLoaded(requestId), 500).unref();
+    }
+  }
+
+  private onLoadingFailed(event: LoadingFailedEvent): void {
+    const { requestId, canceled, blockedReason, errorText } = event;
+
+    const resource = this.requestsById.get(requestId);
+    if (resource) {
+      if (canceled) resource.browserCanceled = true;
+      if (blockedReason) resource.browserBlockedReason = blockedReason;
+      if (errorText) resource.browserLoadFailure = errorText;
+
+      if (!this.requestPublishingById.get(requestId)?.isPublished) {
+        this.doEmitResourceRequested(requestId);
+      }
+      this.emit('resource-failed', {
+        resource,
+      });
+      this.requestsById.delete(requestId);
+      this.requestPublishingById.delete(requestId);
+    }
+  }
+
+  private onLoadingFinished(event: LoadingFinishedEvent): void {
+    const { requestId } = event;
+    this.emitLoaded(requestId);
+  }
+
+  private emitLoaded(id: string): void {
+    const resource = this.requestsById.get(id);
+    if (resource) {
+      if (!this.requestPublishingById.get(id)?.isPublished) this.emitResourceRequested(id);
+      this.requestsById.delete(id);
+      this.requestPublishingById.delete(id);
+      this.emit('resource-loaded', { resource, frameId: resource.frameId });
+    }
+  }
+
+  private getPublishingForRequestId(id: string, createIfNull = false): IResourcePublishing {
+    const publishing = this.requestPublishingById.get(id);
+    if (publishing) return publishing;
+    if (createIfNull) {
+      this.requestPublishingById.set(id, { hasRequestWillBeSentEvent: false });
+      return this.requestPublishingById.get(id);
+    }
+  }
   /////// WEBSOCKET EVENT HANDLERS /////////////////////////////////////////////////////////////////
 
-  private onWebsocketHandshake(handshake: WebSocketWillSendHandshakeRequestEvent) {
+  private onWebsocketHandshake(handshake: WebSocketWillSendHandshakeRequestEvent): void {
     this.emit('websocket-handshake', {
       browserRequestId: handshake.requestId,
       headers: handshake.request.headers,
@@ -211,7 +448,7 @@ export class NetworkManager extends TypedEventEmitter<IPuppetNetworkEvents> {
   private onWebsocketFrame(
     isFromServer: boolean,
     event: WebSocketFrameSentEvent | WebSocketFrameReceivedEvent,
-  ) {
+  ): void {
     const browserRequestId = event.requestId;
     const { opcode, payloadData } = event.response;
     const message = opcode === 1 ? payloadData : Buffer.from(payloadData, 'base64');

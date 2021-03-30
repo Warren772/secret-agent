@@ -29,16 +29,24 @@ module.exports = {
     'plugin:jest/recommended',
     'plugin:promise/recommended',
     'prettier',
-    'prettier/@typescript-eslint',
     'plugin:monorepo-cop/recommended',
+    'plugin:import/errors',
+    'plugin:import/warnings',
+    'plugin:import/typescript',
   ],
   plugins: ['monorepo-cop'],
   parserOptions: {
     project: 'tsconfig.json',
+    extraFileExtensions: ['.mjs'],
   },
   settings: {
     'import/core-modules': ['electron'],
     'import/external-module-folders': workspacesWithModules,
+    'import/resolver': {
+      typescript: {
+        project: ['tsconfig.json', 'replay/tsconfig.json', 'replay/frontend/tsconfig.json'],
+      },
+    },
   },
   env: {
     node: true,
@@ -48,23 +56,41 @@ module.exports = {
   },
   overrides: [
     {
-      files: 'emulator-plugins/shared/test/*.ts',
+      files: ['*client/**/*.ts', '*interfaces/**/*.ts', 'commons/**/*.ts', 'mitm*/**/*.ts'],
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': [
+          'error',
+          { allowExpressions: true, allowHigherOrderFunctions: true },
+        ],
+      },
+    },
+    {
+      files: 'emulate-browsers/base/test/*.ts',
       rules: {
         'no-console': 'off',
       },
     },
     {
-      files: [
-        '**/injected-scripts/**/*.js',
-        '**/injected-scripts/**/*.ts',
-        'injected-scripts/scripts/*.ts',
-      ],
+      files: 'emulate-browsers/**/*.ts',
+      rules: {
+        'require-await': 'off', // Turn off while waiting
+      },
+    },
+    {
+      files: ['global.d.ts'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
+    {
+      files: ['**/injected-scripts/**/*.js', '**/injected-scripts/**/*.ts'],
       rules: {
         'no-console': 'off',
         'no-undef': 'off',
         'prefer-rest-params': 'off',
         'max-classes-per-file': 'off',
         'func-names': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
       },
     },
     {
@@ -79,11 +105,20 @@ module.exports = {
     {
       files: '**/test/*.ts',
       rules: {
+        'max-classes-per-file': 'off',
         'promise/valid-params': 'off',
+        '@typescript-eslint/explicit-function-return-type': 'off',
+        'require-await': 'off',
       },
     },
     {
-      files: ['**/install*', '**/*Install*', '**/prepare-*.js', '**/scripts/*.ts'],
+      files: [
+        '**/install*',
+        '**/*Install*',
+        '**/prepare-*.js',
+        '**/scripts/*.ts',
+        '**/data-scripts/*.ts',
+      ],
       rules: {
         'no-console': 'off',
       },
@@ -92,31 +127,33 @@ module.exports = {
   ignorePatterns: [
     '**/node_modules',
     'node_modules',
-    "**/test/assets/**",
+    '**/test/assets/**',
     'build',
     'build-dist',
+    'examples/*.js',
     '**/build/**',
     '**/dist/**',
     '**/*.md',
     '**/.temp',
-    '**/inspectHierarchy.js',
+    '**/DomExtractor.js',
   ],
   rules: {
     'import/no-named-as-default-member': 'off',
     'import/prefer-default-export': 'off',
     'import/no-cycle': 'off', // TODO:we need to work through this!!
-    'import/extensions': [
-      'error',
-      'ignorePackages',
-      {
-        js: 'never',
-        ts: 'never',
-      },
-    ],
+    'import/extensions': 'off',
     // 'import/no-default-export': 'error',
     'import/no-extraneous-dependencies': [
       'error',
-      { devDependencies: ['**/test/**', '**/examples/**', '**/scripts/**', '**/*.test.ts'] },
+      {
+        devDependencies: [
+          '**/**/test/**',
+          '**/examples/**',
+          '**/scripts/**',
+          '**/data-scripts/**',
+          '**/*.test.ts',
+        ],
+      },
     ],
     'no-use-before-define': 'off', // use typescript one
     'no-prototype-builtins': 'off',
@@ -138,6 +175,9 @@ module.exports = {
     'class-methods-use-this': 'off',
     'consistent-return': ['off', { treatUndefinedAsUnspecified: true }],
     'spaced-comment': ['error', 'always', { markers: ['/////'] }],
+    'require-await': 'error',
+    'arrow-body-style': 'off',
+    'jest/no-conditional-expect': 'off',
     '@typescript-eslint/no-implied-eval': 'off', // false positives for setTimeout with bind fn
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
@@ -148,6 +188,11 @@ module.exports = {
     '@typescript-eslint/no-empty-interface': 'off',
     '@typescript-eslint/no-namespace': 'off',
     '@typescript-eslint/ordered-imports': 'off',
+    '@typescript-eslint/return-await': 'off',
+    '@typescript-eslint/no-shadow': [
+      'error',
+      { ignoreTypeValueShadow: true, ignoreFunctionTypeParameterNameValueShadow: true },
+    ],
     '@typescript-eslint/object-literal-shorthand': 'off',
     '@typescript-eslint/object-shorthand-properties-first': 'off',
     '@typescript-eslint/no-var-requires': 'off',

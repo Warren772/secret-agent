@@ -1,6 +1,6 @@
 # Interactions
 
-Every SecretAgent instance has an `interact()` method, which allow you to control the mouse and keyboard. `Interactions` are simple key/value objects you pass into this method:
+Every Agent instance has an `interact()` method, which allow you to control the mouse and keyboard. `Interactions` are simple key/value objects you pass into this method:
 
 ```js
 agent.interact({ move: [100, 356] });
@@ -12,7 +12,7 @@ Multiple Interactions can be passed through as multiple arguments:
 agent.interact({ click: [250, 356] }, { type: 'hello world' });
 ```
 
-The timing of Interactions are controlled by an emulation layer, called [Huminoids](../advanced-functionality/humanoids), which generate realistic-looking, human-like movements on the remote webpage.
+The timing of Interactions are controlled by an emulation layer, called [HumanEmulators](/docs/advanced/human-emulators), which generate realistic-looking, human-like movements on the remote webpage.
 
 Interaction Commands fall into three broad categories:
 
@@ -32,7 +32,7 @@ Interaction Commands fall into three broad categories:
 #### **MousePosition**:
 Every mouse command include a [`MousePosition`](#mouseposition) value, which specifies where the interaction takes place. It accepts three possible options:
 - `[x, y]` These are pixels relative to the top-left corner of the viewport.
-- [`SuperElement`](../awaited-dom/super-element) Any element from the AwaitedDOM, which are translated into x/y coordinates.
+- [`SuperElement`](/docs/awaited-dom/super-element) Any element from the AwaitedDOM, which are translated into x/y coordinates.
 - `null` Leave the mouse in its current position.
 
 For example, here's how to hover over a link:
@@ -65,8 +65,8 @@ Import KeyboardKeys from IKeyboardLayoutUS for all valid KeyboardChar values (e.
 
 ## The Three WaitFor Commands
 
-- waitForNode: [`SuperNode`](../awaited-dom/super-node)
-- waitForElementVisible: [`SuperElement`](../awaited-dom/super-element)
+- waitForNode: [`SuperNode`](/docs/awaited-dom/super-node)
+- waitForElementVisible: [`SuperElement`](/docs/awaited-dom/super-element)
 - waitForMillis: `number`
 
 Read [this StackOverflow discussion](https://stackoverflow.com/questions/9979172/difference-between-node-object-and-element-object) on the difference between Nodes and Elements.
@@ -83,9 +83,9 @@ agent.interact({ move: [55, 42] }, 'click');
 
 ## Combining Commands
 
-A single Interaction can include multiple commands. Multiple commands within a single Interaction are executed in rapid succession by the Humanoid.
+A single Interaction can include multiple commands. Multiple commands within a single Interaction are executed in rapid succession by the HumanEmulator.
 
-Interactions are similar to paragraphs. The Humanoid adds a longer pause between Interactions then it does between commands within a single Interaction.
+Interactions are similar to paragraphs. The HumanEmulator adds a longer pause between Interactions then it does between commands within a single Interaction.
 
 For example, this allows you to implement simple drag and drop interactions:
 

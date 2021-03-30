@@ -1,9 +1,12 @@
 import { Helpers } from '@secret-agent/testing';
-import SecretAgent from '../index';
+import Resource from '@secret-agent/client/lib/Resource';
+import { Handler } from '../index';
 
 let koaServer;
+let handler: Handler;
 beforeAll(async () => {
-  await SecretAgent.prewarm();
+  handler = new Handler({ maxConcurrency: 1 });
+  Helpers.onClose(() => handler.close(), true);
   koaServer = await Helpers.runKoaServer();
 });
 afterAll(Helpers.afterAll);
@@ -12,7 +15,7 @@ afterEach(Helpers.afterEach);
 describe('basic Full Client tests', () => {
   it('runs goto', async () => {
     const exampleUrl = `${koaServer.baseUrl}/`;
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(exampleUrl);
@@ -20,8 +23,64 @@ describe('basic Full Client tests', () => {
     expect(url).toBe(koaServer.baseHost);
   });
 
+  it('allows you to block resources', async () => {
+    koaServer.get('/block', ctx => {
+      ctx.body = `<html>
+<head>
+  <link rel="stylesheet" href="/test.css" />
+</head>
+<body>
+  <img src="/img.png" alt="Image"/>
+</body>
+</html>`;
+    });
+
+    koaServer.get('/img.png', ctx => {
+      ctx.statusCode = 500;
+    });
+    koaServer.get('/test.css', ctx => {
+      ctx.statusCode = 500;
+    });
+
+    const agent = await handler.createAgent({
+      blockedResourceTypes: ['BlockAssets'],
+    });
+    Helpers.needsClosing.push(agent);
+
+    const resources: Resource[] = [];
+    await agent.activeTab.on('resource', event => resources.push(event));
+    await agent.goto(`${koaServer.baseUrl}/block`);
+    await agent.waitForPaintingStable();
+    await new Promise(setImmediate);
+    expect(resources).toHaveLength(1);
+    expect(await resources[0].response.statusCode).toBe(200);
+    expect(resources[0].type).toBe('Document');
+  });
+
+  it('should get unreachable proxy errors in the client', async () => {
+    const agent = await handler.createAgent({
+      upstreamProxyUrl: koaServer.baseUrl,
+    });
+    Helpers.needsClosing.push(agent);
+    await expect(agent.goto(`${koaServer.baseUrl}/`)).rejects.toThrow();
+  });
+
+  it('should get errors in dispatch', async () => {
+    handler.dispatchAgent(
+      async agent => {
+        await agent.goto(`${koaServer.baseUrl}/`);
+      },
+      null,
+      {
+        upstreamProxyUrl: koaServer.baseUrl,
+      },
+    );
+
+    await expect(handler.waitForAllDispatches()).rejects.toThrow();
+  });
+
   it('runs goto with no document loaded', async () => {
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
     const url = await agent.document.location.host;
     expect(url).toBe(null);
@@ -29,7 +88,7 @@ describe('basic Full Client tests', () => {
 
   it('gets the resource back from a goto', async () => {
     const exampleUrl = `${koaServer.baseUrl}/`;
-    const agent = await new SecretAgent({
+    const agent = await handler.createAgent({
       locale: 'en-US,en;q=0.9',
     });
     Helpers.needsClosing.push(agent);
@@ -66,13 +125,14 @@ describe('basic Full Client tests', () => {
   });
 
   it('can get and set cookies', async () => {
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     koaServer.get('/cookies', ctx => {
       ctx.cookies.set('Cookie1', 'This is a test', {
         httpOnly: true,
       });
+      ctx.body = '';
     });
 
     await agent.goto(`${koaServer.baseUrl}/cookies`);
@@ -107,8 +167,17 @@ describe('basic Full Client tests', () => {
     }
   });
 
+  it('should send a friendly message if trying to set cookies before a url is loaded', async () => {
+    const agent = await handler.createAgent();
+    Helpers.needsClosing.push(agent);
+
+    await expect(agent.activeTab.cookieStorage.setItem('test', 'test')).rejects.toThrowError(
+      "Chrome won't allow you to set cookies on a blank tab.",
+    );
+  });
+
   it('can get and set localStorage', async () => {
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     Helpers.needsClosing.push(agent);
 
     await agent.goto(`${koaServer.baseUrl}/`);

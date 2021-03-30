@@ -4,47 +4,67 @@ A Tab is similar to a tab in a consumer browser. Each Tab drives an underlying d
 
 ## Constructor
 
-A default tab is provided in each SecretAgent instance. Navigate by using the [secretAgent.goto](./secret-agent#goto) method.
+A default tab is provided in each Agent instance. Navigate by using the [agent.goto](/docs/basic-interfaces/agent#goto) method.
 
-When a new window is "popped up" (ie, `<a href="/new-place" target="_blank"`), a tab will automatically be associated with the SecretAgent instance. These can be discovered using the [secretAgent.tabs](./secret-agent#tabs) method, or waiting with [secretAgent.waitForNewTab()](./secret-agent#wait-for-new-tab).
+When a new window is "popped up" (ie, `<a href="/new-place" target="_blank"`), a tab will automatically be associated with the Agent instance. These can be discovered using the [agent.tabs](/docs/basic-interfaces/agent#tabs) method, or waiting with [agent.waitForNewTab()](/docs/basic-interfaces/agent#wait-for-new-tab).
 
 ## Properties
 
 ### tab.cookieStorage {#cookie-storage}
 
-Returns a [CookieStorage](../advanced/cookie-storage) instance to get/set/delete Tab cookies.
+Returns a [CookieStorage](/docs/advanced/cookie-storage) instance to get/set/delete cookies in the [mainFrameEnvironment](#main-frame-environment) of this tab.
 
-#### **Type**: [`CookieStorage`](../advanced/cookie-storage)
+Alias for [tab.mainFrameEnvironment.cookieStorage](/docs/basic-interfaces/frame-environment#cookie-storage).
+
+#### **Type**: [`CookieStorage`](/docs/advanced/cookie-storage)
 
 ### tab.document <div class="specs"><i>W3C</i></div> {#document}
 
-Returns a reference to the document of the tab.
+Returns a reference to the document of the [mainFrameEnvironment](#main-frame-environment) of this tab.
 
-#### **Type**: [`SuperDocument`](../awaited-dom/super-document)
+Alias for [tab.mainFrameEnvironment.document](/docs/basic-interfaces/frame-environment#document).
+
+#### **Type**: [`SuperDocument`](/docs/awaited-dom/super-document)
+
+### tab.frameEnvironments {#frame-environments}
+
+Returns a list of [Frames](/docs/basic-interfaces/frame-environment) loaded for this tab.
+
+#### **Type**: [`Promise<Frame[]>`](/docs/basic-interfaces/frame-environment).
 
 ### tab.lastCommandId {#lastCommandId}
 
-An execution point that refers to a command run on this SecretAgent instance (`waitForElement`, `click`, `type`, etc). Command ids can be passed to select `waitFor*` functions to indicate a starting point to listen for changes.
+An execution point that refers to a command run on this Agent instance (`waitForElement`, `click`, `type`, etc). Command ids can be passed to select `waitFor*` functions to indicate a starting point to listen for changes.
 
 #### **Type**: `Promise<number>`
 
 ### tab.localStorage <div class="specs"><i>W3C</i></div> {#local-storage}
 
-Returns a reference to the [Storage](../awaited-dom/storage) object managing localStorage for the tab.
+Returns a reference to the [Storage](/docs/awaited-dom/storage) object managing localStorage for the [mainFrameEnvironment](#main-frame-environment) of this tab.
 
-#### **Type**: [`Storage`](../awaited-dom/storage)
+Alias for [tab.mainFrameEnvironment.localStorage](/docs/basic-interfaces/frame-environment#local-storage).
+
+#### **Type**: [`Storage`](/docs/awaited-dom/storage)
+
+### tab.mainFrameEnvironment {#main-frame-environment}
+
+Returns the [`FrameEnvironment`](/docs/basic-interfaces/frame-environment) representing the primary content of the loaded tab.
+
+#### **Type**: [`FrameEnvironment`](/docs/basic-interfaces/frame-environment).
 
 ### tab.sessionStorage <div class="specs"><i>W3C</i></div> {#session-storage}
 
-Returns a reference to the [Storage](../awaited-dom/storage) object managing sessionStorage for the tab.
+Returns a reference to the [Storage](/docs/awaited-dom/storage) object managing sessionStorage for the [mainFrameEnvironment](#main-frame-environment) of this tab.
 
-#### **Type**: [`Storage`](../awaited-dom/storage)
+Alias for [tab.mainFrameEnvironment.sessionStorage](/docs/basic-interfaces/frame-environment#session-storage).
+
+#### **Type**: [`Storage`](/docs/awaited-dom/storage)
 
 ### tab.tabId {#tabid}
 
 An identifier for the tab.
 
-#### **Type**: `Promise<string>`
+#### **Type**: `Promise<number>`
 
 ### tab.url {#url}
 
@@ -54,33 +74,26 @@ The url of the active tab.
 
 ### tab.Request <div class="specs"><i>W3C</i></div> {#request-type}
 
-Returns a constructor for a [Request](../awaited-dom/request) object that can be sent to [tab.fetch(request)](#fetch).
+Returns a constructor for a [Request](/docs/awaited-dom/request) object in the [mainFrameEnvironment](#main-frame-environment).
 
-```js
-const agent = await new SecretAgent();
-const { Request, fetch } = agent;
-const url = 'https://dataliberationfoundation.org';
-const request = new Request(url, {
-  headers: {
-    'X-From': 'https://secretagent.dev',
-  },
-});
-const response = await fetch(request);
-```
+Alias for [tab.mainFrameEnvironment.Request](/docs/basic-interfaces/frame-environment#request-type)
 
-#### **Type**: [`Request`](../awaited-dom/request)
+#### **Type**: [`Request`](/docs/awaited-dom/request)
 
 ## Methods
 
 ### tab.close*()* {#close}
 
-Closes the current tab only (will close the whole SecretAgent instance if there are no open tabs).
+Closes the current tab only (will close the whole Agent instance if there are no open tabs).
 
 #### **Returns**: `Promise`
 
 ### tab.fetch*(requestInput, requestInit)* <div class="specs"><i>W3C</i></div> {#fetch}
 
-Perform a native "fetch" request in the current tab context.
+Perform a native "fetch" request in the [mainFrameEnvironment](#main-frame-environment) context.
+
+NOTE: You can work around Cross Origin Request (CORS) issues or change your request "origin" by running fetch
+from each [FrameEnvironment](/docs/basic-interfaces/frame-environment#fetch).
 
 #### **Arguments**:
 
@@ -89,10 +102,11 @@ Perform a native "fetch" request in the current tab context.
   - Inbound Body currently supports: `string`, `ArrayBuffer`, `null`.
   - Not supported: `Blob`, `FormData`, `ReadableStream`, `URLSearchParams`
 
-#### **Returns**: [`Promise<Response>`](../awaited-dom/response)
+Alias for [tab.mainFrameEnvironment.fetch](/docs/basic-interfaces/frame-environment#fetch)
+
+#### **Returns**: [`Promise<Response>`](/docs/awaited-dom/response)
 
 ```js
-const agent = new SecretAgent();
 const url = 'https://dataliberationfoundation.org';
 const response = await agent.fetch(url);
 ```
@@ -100,7 +114,6 @@ const response = await agent.fetch(url);
 Http Post example with a body:
 
 ```js
-const agent = new SecretAgent();
 const url = 'https://dataliberationfoundation.org/nopost';
 const response = await agent.fetch(url, {
   method: 'post',
@@ -113,15 +126,47 @@ const response = await agent.fetch(url, {
 });
 ```
 
+### tab.getFrameEnvironment*(frameElement)* {#get-frame-environment}
+
+Get the [FrameEnvironment](/docs/basic-interfaces/frame-environment) object corresponding to the provided HTMLFrameElement or HTMLIFrameElement. Use this function to interface with the full environment of the given DOM element without cross-domain restrictions.
+
+Alias for [FrameEnvironment.getFrameEnvironment](/docs/basic-interfaces/frame-environment#get-frame-environment)
+
 ### tab.focus*()* {#focus}
 
 Make this tab the `activeTab` within a browser, which directs many SecretAgent methods to this tab.
 
 #### **Returns**: `Promise`
 
+### tab.getComputedStyle*(element, pseudoElement)* <div class="specs"><i>W3C</i></div> {#computed-style}
+
+Perform a native `Window.getComputedStyle` request in the current main [FrameEnvironment](/docs/basic-interfaces/frame-environment) - it returns an object containing the values of all CSS properties of an element, after applying active stylesheets and resolving any basic computation those values may contain. Individual CSS property values are accessed through APIs provided by the object, or by indexing with CSS property names.
+
+Alias for [tab.mainFrameEnvironment.getComputedStyle](/docs/basic-interfaces/frame-environment#computed-style).
+
+#### **Arguments**:
+
+- element [`SuperElement`](/docs/awaited-dom/super-element) An element loaded in this tab environment.
+- pseudoElement `string?` Optional string specifying the pseudo-element to match (eg, ::before, ::after, etc). More information can be found on [w3c](https://www.w3.org/TR/css-pseudo-4/).
+
+#### **Returns**: [`Promise<CssStyleDeclaration>`](/docs/awaited-dom/cssstyledeclaration)
+
+```js
+await agent.goto('https://dataliberationfoundation.org');
+const { document, getComputedStyle } = agent.activeTab;
+const selector = document.querySelector('h1');
+const style = await getComputedStyle(selector);
+const opacity = await style.getProperty('opacity');
+```
+
 ### tab.getJsValue*(path)* {#get-js-value}
 
-Extract any publicly accessible javascript value from the webpage context.
+Extract any publicly accessible javascript value from the current main [FrameEnvironment](/docs/basic-interfaces/frame-environment) context.
+
+NOTE: This type of operation could potentially be snooped on by the hosting website as it must run in the main Javascript environment
+in order to access variables.
+
+Alias for [tab.mainFrameEnvironment.getJsValue](/docs/basic-interfaces/frame-environment#get-js-value).
 
 #### **Arguments**:
 
@@ -130,63 +175,106 @@ Extract any publicly accessible javascript value from the webpage context.
 #### **Returns**: `Promise<SerializedValue>`
 
 ```js
-const agent = new SecretAgent();
 await agent.goto('https://dataliberationfoundation.org');
 const navigatorAgent = await agent.activeTab.getJsValue(`navigator.userAgent`);
 ```
 
-### tab.goBack*()* {#back}
+### tab.goBack*(timeoutMs)* {#back}
 
 Navigates to a previous url in the navigation history.
 
+#### **Arguments**:
+
+- timeoutMs `number`. Optional timeout milliseconds. Default `30,000`. A value of `0` will never timeout.
+
 #### **Returns**: `Promise<string>` The new document url.
 
-### tab.goForward*()* {#forward}
+### tab.goForward*(timeoutMs)* {#forward}
 
 Navigates forward in the navigation history stack.
 
+#### **Arguments**:
+
+- timeoutMs `number`. Optional timeout milliseconds. Default `30,000`. A value of `0` will never timeout.
+
 #### **Returns**: `Promise<string>` The new document url.
 
-### tab.goto*(locationHref)* {#goto}
+### tab.goto*(locationHref, timeoutMs?)* {#goto}
 
-Executes a navigation request for the document associated with the parent Secret Agent instance.
+Executes a navigation request for the document associated with the parent SecretAgent instance.
 
 #### **Arguments**:
 
 - locationHref `string` The location to navigate to.
+- timeoutMs `number`. Optional timeout milliseconds. Default `30,000`. A value of `0` will never timeout.
 
-#### **Returns**: [`Promise<Resource>`](../advanced/resource) The loaded resource representing this page.
+#### **Returns**: [`Promise<Resource>`](/docs/advanced/resource) The loaded resource representing this page.
 
 ### tab.isElementVisible*(element)* {#is-element-visible}
 
-Determines if an element is visible to an end user. This method checks whether an element has:
+Determines if an element from the [mainFrameEnvironment](#main-frame-environment) is visible to an end user. This method checks whether an element has:
 
 - layout: width, height, x and y.
 - opacity: non-zero opacity.
 - css visibility: the element does not have a computed style where visibility=hidden.
 - no overlay: no other element which overlays more than one fourth of this element and has at least 1 pixel over the center of the element.
 
+Alias for [tab.mainFrameEnvironment.isElementVisible](/docs/basic-interfaces/frame-environment#is-element-visible).
+
 #### **Arguments**:
 
-- element [`SuperElement`](../awaited-dom/super-element). The element to determine visibility.
+- element [`SuperElement`](/docs/awaited-dom/super-element). The element to determine visibility.
 
 #### **Returns**: `Promise<boolean>` Whether the element is visible to an end user.
 
-### tab.waitForAllContentLoaded*()* {#wait-for-all-content}
+### tab.reload*(timeoutMs?)* {#reload}
 
-Wait for the "load" DOM event. We renamed this to be more explicit because we're always mixing up DOMContentLoaded and load.
+Reload the currently loaded url.
+
+#### **Arguments**:
+
+- timeoutMs `number`. Optional timeout milliseconds. Default `30,000`. A value of `0` will never timeout.
+
+#### **Returns**: [`Promise<Resource>`](/docs/advanced/resource) The loaded resource representing this page.
+
+### tab.takeScreenshot*(options?)* {#take-screenshot}
+
+Takes a screenshot of the current contents rendered in the browser.
+
+#### **Arguments**:
+
+- options `object` Optional
+  - format `jpeg | png`. Image format type to create. Default `jpeg`.
+  - jpegQuality `number`. Optional compression quality from 1 to 100 for jpeg images (100 is highest quality).
+  - rectangle `IRect`. Optionally clip the screenshot to the given rectangle (eg, x, y, width, height). Includes a pixel scale.
+
+#### **Returns**: `Promise<Buffer>` Buffer with image bytes in base64.
+
+### tab.waitForPaintingStable*(options)* {#wait-for-painting-stable}
+
+Wait for the [mainFrameEnvironment](#main-frame-environment) to be loaded such that a user can see the main content above the fold, including on javascript-rendered pages (eg, Single Page Apps). This load event works around deficiencies in using the Document "load" event, which does not always trigger, and doesn't work for Single Page Apps.
+
+Alias for [tab.mainFrameEnvironment.waitForPaintingStable](/docs/basic-interfaces/frame-environment#wait-for-painting-stable).
+
+#### **Arguments**:
+
+- options `object` Optional
+  - timeoutMs `number`. Timeout in milliseconds. Default `30,000`.
+  - sinceCommandId `number`. A `commandId` from which to look for load status changes.
 
 #### **Returns**: `Promise<void>`
 
 ### tab.waitForElement*(element)* {#wait-for-element}
 
-Wait until a specific element is present in the dom.
+Wait until a specific element is present in the dom of the [mainFrameEnvironment](#main-frame-environment).
+
+Alias for [tab.mainFrameEnvironment.waitForElement](/docs/basic-interfaces/frame-environment#wait-for-element).
 
 #### **Arguments**:
 
-- element [`SuperElement`](../awaited-dom/super-element)
+- element [`SuperElement`](/docs/awaited-dom/super-element)
 - options `object` Accepts any of the following:
-  - timeoutMs `number`. Timeout in milliseconds.
+  - timeoutMs `number`. Timeout in milliseconds. Default `30,000`.
   - waitForVisible `boolean`. Wait until this element is visible to a user (see [isElementVisible](#is-element-visible).
 
 #### **Returns**: `Promise`
@@ -194,7 +282,6 @@ Wait until a specific element is present in the dom.
 If at the moment of calling this method, the selector already exists, the method will return immediately.
 
 ```js
-const agent = new SecretAgent();
 const { activeTab, document } = agent;
 
 const elem = document.querySelector('a.visible');
@@ -203,13 +290,18 @@ await activeTab.waitForElement(elem, {
 });
 ```
 
-### tab.waitForLoad*(status)* {#wait-for-load}
+### tab.waitForLoad*(status, options)* {#wait-for-load}
 
-Wait for the load status to occur on a page.
+Wait for the load status of the [mainFrameEnvironment](#main-frame-environment).
+
+Alias for [tab.mainFrameEnvironment.waitForLoad](/docs/basic-interfaces/frame-environment#wait-for-load).
 
 #### **Arguments**:
 
-- status `NavigationRequested | HttpRequested | HttpResponsed | HttpRedirected | DomContentLoaded | AllContentLoaded` The load status event to wait for.
+- status `NavigationRequested | HttpRequested | HttpResponsed | HttpRedirected | DomContentLoaded | PaintingStable` The load status event to wait for.
+- options `object`
+  - timeoutMs `number`. Timeout in milliseconds. Default `30,000`.
+  - sinceCommandId `number`. A `commandId` from which to look for status changed.
 
 #### **Returns**: `Promise<void>`
 
@@ -217,22 +309,27 @@ The following are possible statuses and their meanings:
 
 <div class="show-table-header show-bottom-border minimal-row-height"></div>
 
-| Status                | Description                                                                                                                                                                         |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NavigationRequested` | A navigation request is initiated by the page or user                                                                                                                               |
-| `HttpRequested`       | The http request for the document has been initiated                                                                                                                                |
-| `HttpResponded`       | The http response has been retrieved                                                                                                                                                |
-| `HttpRedirected`      | The original http request was redirected                                                                                                                                            |
-| `DomContentLoaded`    | The dom content has been received and loaded into the document                                                                                                                      |
-| `AllContentLoaded`    | All dependent resources such as stylesheets and images. This is similar to the traditional [window load event](https://developer.mozilla.org/en-US/docs/Web/API/Window/load_event). |
+| Status                | Description                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `NavigationRequested` | A navigation request is initiated by the page or user                                    |
+| `HttpRequested`       | The http request for the document has been initiated                                     |
+| `HttpResponded`       | The http response has been retrieved                                                     |
+| `HttpRedirected`      | The original http request was redirected                                                 |
+| `DomContentLoaded`    | The dom content has been received and loaded into the document                           |
+| `PaintingStable`      | The page has loaded the main content above the fold. Works on javascript-rendered pages. |
 
-### tab.waitForLocation*(trigger)* {#wait-for-location}
+### tab.waitForLocation*(trigger, options)* {#wait-for-location}
 
 Waits for a navigational change to document.location either because of a `reload` event or changes to the URL.
+
+Alias for [tab.mainFrameEnvironment.waitForLocation](/docs/basic-interfaces/frame-environment#wait-for-location).
 
 #### **Arguments**:
 
 - trigger `change | reload` The same url has been reloaded, or it's a new url.
+- options `object`
+  - timeoutMs `number`. Timeout in milliseconds. Default `30,000`.
+  - sinceCommandId `number`. A `commandId` from which to look for changes.
 
 #### **Returns**: `Promise`
 
@@ -248,7 +345,6 @@ Location changes are triggered in one of two ways:
 The following example waits for a new page to load after clicking on an anchor tag:
 
 ```js
-const agent = new SecretAgent();
 const { user, activeTab, document } = agent;
 await activeTab.goto('http://example.com');
 
@@ -266,17 +362,16 @@ Wait until a specific image, stylesheet, script, websocket or other resource URL
 
 - filter `object` Accepts any of the following:
   - url `string | RegExp` A string or regex to match a url on
-  - type [`ResourceType`](../advanced/resource#type) A resource type to filter on
+  - type [`ResourceType`](/docs/advanced/resource#type) A resource type to filter on
   - filterFn `function(resource: Resource, done: Callback): boolean` A function to allow further filtering of returned resources. Return true to include resources, false to exclude. Calling `done` finishes execution.
 - options `object` Accepts any of the following:
-  - timeoutMs `number`. Timeout in milliseconds
-  - throwIfTimeout `boolean`. Throw an exception if a timeout occurs. Default `true`
+  - timeoutMs `number`. Timeout in milliseconds. Default `60,000`.
   - sinceCommandId `number`. A `commandId` from which to look for resources.
+  - throwIfTimeout `boolean`. Throw an exception if a timeout occurs. Default `true`.
 
-#### **Returns**: [`Promise<Resource[]>`](../advanced/resource)
+#### **Returns**: [`Promise<Resource[]>`](/docs/advanced/resource)
 
 ```js
-const agent = new SecretAgent();
 const { user, activeTab, document } = agent;
 
 await activeTab.goto('http://example.com');
@@ -314,19 +409,9 @@ Waits for the specified number of milliseconds.
 
 #### **Returns**: `Promise`
 
-### tab.waitForWebSocket*(filename)* {#wait-for-websocket}
-
-Waits until the specified web socket has been received.
-
-#### **Arguments**:
-
-- filename `number | RegExp`
-
-#### **Returns**: [`Promise<WebSocketResource>`](../advanced/websocket-resource)
-
 ## Events
 
-SecretAgent's [EventTarget](./event-target) interface deviates from the official W3C implementation in that it adds several additional method aliases such as `on` and `off`. [Learn more](./event-target).
+SecretAgent's [EventTarget](/docs/basic-interfaces/event-target) interface deviates from the official W3C implementation in that it adds several additional method aliases such as `on` and `off`. [Learn more](/docs/basic-interfaces/event-target).
 
 ### 'resource' {#resource-event}
 
@@ -334,4 +419,4 @@ Emitted for each resource request received by the webpage.
 
 #### **Arguments in callback**:
 
-- [`Resource`](../advanced/resource) | [`WebsocketResource`](../advanced/websocket-resource)
+- [`Resource`](/docs/advanced/resource) | [`WebsocketResource`](/docs/advanced/websocket-resource)

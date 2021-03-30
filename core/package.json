@@ -1,29 +1,41 @@
 {
   "name": "@secret-agent/core",
-  "version": "1.1.0-alpha.1",
+  "version": "1.4.1-alpha.0",
   "description": "The core browser API used to run SecretAgent",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.cjs"
+    },
+    "./start": "./start.js",
+    "./server": "./server/index.js"
+  },
   "dependencies": {
-    "@secret-agent/commons": "1.1.0-alpha.1",
-    "@secret-agent/core-interfaces": "1.1.0-alpha.1",
-    "@secret-agent/emulate-chrome-83": "1.1.0-alpha.1",
-    "@secret-agent/emulators": "1.1.0-alpha.1",
-    "@secret-agent/humanoids": "1.1.0-alpha.1",
-    "@secret-agent/injected-scripts": "1.1.0-alpha.1",
-    "@secret-agent/mitm": "1.1.0-alpha.1",
-    "@secret-agent/puppet": "1.1.0-alpha.1",
-    "@secret-agent/session-state": "1.1.0-alpha.1",
-    "awaited-dom": "^1.1.7",
-    "moment": "^2.24.0",
-    "typeson": "^5.18.2",
-    "typeson-registry": "^1.0.0-alpha.38",
-    "uuid": "^8.1.0"
+    "@secret-agent/commons": "1.4.1-alpha.0",
+    "@secret-agent/core-interfaces": "1.4.1-alpha.0",
+    "@secret-agent/emulate-browsers-base": "1.4.1-alpha.0",
+    "@secret-agent/emulate-chrome-83": "1.4.1-alpha.0",
+    "@secret-agent/emulate-humans-basic": "1.4.1-alpha.0",
+    "@secret-agent/emulate-humans-ghost": "1.4.1-alpha.0",
+    "@secret-agent/emulate-humans-skipper": "1.4.1-alpha.0",
+    "@secret-agent/mitm": "1.4.1-alpha.0",
+    "@secret-agent/puppet": "1.4.1-alpha.0",
+    "@secret-agent/puppet-interfaces": "1.4.1-alpha.0",
+    "awaited-dom": "^1.1.10",
+    "better-sqlite3": "^7.1.2",
+    "moment": "^2.24.1",
+    "uuid": "^8.3.2",
+    "ws": "^7.4.2"
   },
   "devDependencies": {
-    "@secret-agent/client": "1.1.0-alpha.1",
-    "@secret-agent/core": "1.1.0-alpha.1",
-    "@secret-agent/emulate-safari-13": "1.1.0-alpha.1",
-    "@secret-agent/puppet-chrome": "1.1.0-alpha.1",
-    "@secret-agent/testing": "1.1.0-alpha.1",
-    "http-proxy-agent": "^4.0.1"
+    "@secret-agent/client": "1.4.1-alpha.0",
+    "@secret-agent/core": "1.4.1-alpha.0",
+    "@secret-agent/emulate-safari-13": "1.4.1-alpha.0",
+    "@secret-agent/puppet-chrome": "1.4.1-alpha.0",
+    "@secret-agent/testing": "1.4.1-alpha.0",
+    "@types/better-sqlite3": "^5.4.0",
+    "@types/json-socket": "^0.1.17",
+    "http-proxy-agent": "^4.0.1",
+    "vue": "^2.6.12"
   }
 }

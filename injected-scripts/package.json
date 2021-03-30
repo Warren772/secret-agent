@@ -1,8 +1,0 @@
-{
-  "name": "@secret-agent/injected-scripts",
-  "version": "1.1.0-alpha.1",
-  "description": "Various scripts that are injected into the DOM",
-  "dependencies": {
-    "@secret-agent/core-interfaces": "1.1.0-alpha.1"
-  }
-}

@@ -3,25 +3,27 @@ import AwaitedPath from 'awaited-dom/base/AwaitedPath';
 import StateMachine from 'awaited-dom/base/StateMachine';
 import { IRequestInfo, IRequestInit } from 'awaited-dom/base/interfaces/official';
 import IAttachedState from 'awaited-dom/base/IAttachedState';
-import CoreTab from './CoreTab';
+import CoreFrameEnvironment from './CoreFrameEnvironment';
 
 interface IState {
   awaitedPath: AwaitedPath;
   attachedState: IAttachedState;
   remoteInitializerPromise: Promise<void>;
-  coreTab: Promise<CoreTab>;
+  coreFrame: Promise<CoreFrameEnvironment>;
 }
 
 const { getState, setState } = StateMachine<FetchRequest, IState>();
 
-export default function RequestGenerator(coreTab: Promise<CoreTab>) {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export default function RequestGenerator(coreFrame: Promise<CoreFrameEnvironment>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return class Request extends FetchRequest {
     constructor(input: IRequestInfo, init?: IRequestInit) {
       super(input, init);
 
       setState(this, {
-        coreTab,
-        remoteInitializerPromise: createRemoteInitializer(this, coreTab, input, init),
+        coreFrame,
+        remoteInitializerPromise: createRemoteInitializer(this, coreFrame, input, init),
       });
     }
   };
@@ -29,13 +31,13 @@ export default function RequestGenerator(coreTab: Promise<CoreTab>) {
 
 async function createRemoteInitializer(
   instance: FetchRequest,
-  coreTabPromise: Promise<CoreTab>,
+  coreFramePromise: Promise<CoreFrameEnvironment>,
   input: IRequestInfo,
   init?: IRequestInit,
-) {
+): Promise<void> {
   const requestInput = await getRequestIdOrUrl(input);
-  const coreTab = await coreTabPromise;
-  const attachedState = await coreTab.createRequest(requestInput, init);
+  const coreFrame = await coreFramePromise;
+  const attachedState = await coreFrame.createRequest(requestInput, init);
   const awaitedPath = new AwaitedPath().withAttachedId(attachedState.id);
   setState(instance, {
     attachedState,
@@ -43,7 +45,7 @@ async function createRemoteInitializer(
   });
 }
 
-export async function getRequestIdOrUrl(input: IRequestInfo) {
+export async function getRequestIdOrUrl(input: IRequestInfo): Promise<number | string> {
   let requestInput: number | string;
   if (typeof input === 'string') {
     requestInput = input;

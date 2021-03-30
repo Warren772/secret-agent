@@ -1,20 +1,22 @@
-import { createPromise, IResolvablePromise } from '@secret-agent/commons/utils';
+import { createPromise } from '@secret-agent/commons/utils';
+import IResolvablePromise from '@secret-agent/core-interfaces/IResolvablePromise';
 import { ConnectionOptions } from 'tls';
-import moment from 'moment';
-import net from 'net';
+import * as moment from 'moment';
+import * as net from 'net';
+import { promises as dns } from 'dns';
 import DnsOverTlsSocket from './DnsOverTlsSocket';
 import RequestSession from '../handlers/RequestSession';
 
 export class Dns {
+  public static dnsEntries = new Map<string, IResolvablePromise<IDnsEntry>>();
   public socket: DnsOverTlsSocket;
-  public dnsEntries = new Map<string, IResolvablePromise<IDnsEntry>>();
   private readonly dnsServer: ConnectionOptions;
 
   constructor(readonly requestSession?: RequestSession) {
-    this.dnsServer = requestSession?.delegate?.dnsOverTlsConnectOptions;
+    this.dnsServer = requestSession?.networkInterceptorDelegate?.dns?.dnsOverTlsConnection;
   }
 
-  public async lookupIp(host: string, retries = 3) {
+  public async lookupIp(host: string, retries = 3): Promise<string> {
     if (!this.dnsServer || host === 'localhost' || net.isIP(host)) return host;
 
     try {
@@ -28,22 +30,58 @@ export class Dns {
     }
 
     // if not found in cache, perform dns lookup
-    const dnsEntry = await this.lookupDnsEntry(host);
-    return this.nextIp(dnsEntry);
+    let lookupError: Error;
+    try {
+      const dnsEntry = await this.lookupDnsEntry(host);
+      const ip = this.nextIp(dnsEntry);
+      if (ip) return ip;
+    } catch (error) {
+      lookupError = error;
+    }
+
+    // try to resolve using system interface
+    try {
+      const dnsEntry = await this.systemLookup(host);
+      return this.nextIp(dnsEntry);
+    } catch (error) {
+      // don't throw error, throw original error
+      throw lookupError;
+    }
   }
 
-  public close() {
+  public close(): void {
     this.socket?.close();
   }
 
-  private async lookupDnsEntry(host: string) {
-    const existing = this.dnsEntries.get(host);
+  private async systemLookup(host: string): Promise<IDnsEntry> {
+    const dnsEntry = createPromise<IDnsEntry>();
+    Dns.dnsEntries.set(host, dnsEntry);
+    try {
+      const lookupAddresses = await dns.lookup(host.split(':').shift(), {
+        all: true,
+        family: 4,
+      });
+      const entry = <IDnsEntry>{
+        aRecords: lookupAddresses.map(x => ({
+          expiry: moment().add(10, 'minutes').toDate(),
+          ip: x.address,
+        })),
+      };
+      dnsEntry.resolve(entry);
+    } catch (error) {
+      dnsEntry.reject(error);
+      Dns.dnsEntries.delete(host);
+    }
+    return dnsEntry.promise;
+  }
+
+  private async lookupDnsEntry(host: string): Promise<IDnsEntry> {
+    const existing = Dns.dnsEntries.get(host);
     if (existing && !existing.isResolved) return existing.promise;
 
+    const dnsEntry = createPromise<IDnsEntry>();
+    Dns.dnsEntries.set(host, dnsEntry);
     try {
-      const dnsEntry = createPromise<IDnsEntry>();
-      this.dnsEntries.set(host, dnsEntry);
-
       if (!this.socket) {
         this.socket = new DnsOverTlsSocket(
           this.dnsServer,
@@ -59,21 +97,18 @@ export class Dns {
           .filter(x => x.type === 'A') // gives non-query records sometimes
           .map(x => ({
             ip: x.data,
-            expiry: moment()
-              .add(x.ttl, 'seconds')
-              .toDate(),
+            expiry: moment().add(x.ttl, 'seconds').toDate(),
           })),
       };
       dnsEntry.resolve(entry);
-      return entry;
     } catch (error) {
-      this.dnsEntries.get(host)?.reject(error);
-      this.dnsEntries.delete(host);
-      throw error;
+      dnsEntry.reject(error);
+      Dns.dnsEntries.delete(host);
     }
+    return dnsEntry.promise;
   }
 
-  private nextIp(dnsEntry: IDnsEntry) {
+  private nextIp(dnsEntry: IDnsEntry): string {
     // implement rotating
     for (let i = 0; i < dnsEntry.aRecords.length; i += 1) {
       const record = dnsEntry.aRecords[i];
@@ -87,8 +122,8 @@ export class Dns {
     return null;
   }
 
-  private async getNextCachedARecord(name: string) {
-    const cached = await this.dnsEntries.get(name)?.promise;
+  private async getNextCachedARecord(name: string): Promise<string> {
+    const cached = await Dns.dnsEntries.get(name)?.promise;
     if (cached?.aRecords?.length) {
       return this.nextIp(cached);
     }

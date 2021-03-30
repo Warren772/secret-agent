@@ -4,6 +4,132 @@
 
 ## Properties
 
+### elem.align <div class="specs"><i>W3C</i></div> {#align}
+
+Is a `string` representing an enumerated property indicating alignment of the element's contents with respect to the surrounding context. The possible values are <code>"left"</code>, <code>"right"</code>, <code>"justify"</code>, and <code>"center"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.archive <div class="specs"><i>W3C</i></div> {#archive}
+
+Is a `string` that reflects the <code>archive</code> HTML attribute, containing a list of archives for resources for this object.
+
+#### **Type**: `Promise<string>`
+
+### elem.border <div class="specs"><i>W3C</i></div> {#border}
+
+Is a `string` that reflects the <code>border</code> HTML attribute, specifying the width of a border around the object.
+
+#### **Type**: `Promise<string>`
+
+### elem.code <div class="specs"><i>W3C</i></div> {#code}
+
+Is a `string` representing the name of an applet class file, containing either the applet's subclass, or the path to get to the class, including the class file itself.
+
+#### **Type**: `Promise<string>`
+
+### elem.codeBase <div class="specs"><i>W3C</i></div> {#codeBase}
+
+Is a `string` that reflects the <code>codebase</code> HTML attribute, specifying the base path to use to resolve relative URIs.
+
+#### **Type**: `Promise<string>`
+
+### elem.codeType <div class="specs"><i>W3C</i></div> {#codeType}
+
+Is a `string` that reflects the <code>codetype</code> HTML attribute, specifying the content type of the data.
+
+#### **Type**: `Promise<string>`
+
+### elem.contentDocument <div class="specs"><i>W3C</i></div> {#contentDocument}
+
+Returns a <code>Document</code> representing the active document of the object element's nested browsing context, if any; otherwise <code>null</code>.
+
+#### **Type**: [`SuperDocument`](./super-document)
+
+### elem.data <div class="specs"><i>W3C</i></div> {#data}
+
+Returns a `string` that reflects the <code>data</code> HTML attribute, specifying the address of a resource's data.
+
+#### **Type**: `Promise<string>`
+
+### elem.declare <div class="specs"><i>W3C</i></div> {#declare}
+
+Is a `boolean` that reflects the <code>declare</code> HTML attribute, indicating that this is a declaration, not an instantiation, of the object.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.form <div class="specs"><i>W3C</i></div> {#form}
+
+Retuns a <code>HTMLFormElement</code> representing the object element's form owner, or null if there isn't one.
+
+#### **Type**: [`HTMLFormElement`](./html-form-element)
+
+### elem.height <div class="specs"><i>W3C</i></div> {#height}
+
+Returns a `string` that reflects the <code>height</code> HTML attribute, specifying the displayed height of the resource in CSS pixels.
+
+#### **Type**: `Promise<string>`
+
+### elem.hspace <div class="specs"><i>W3C</i></div> {#hspace}
+
+Is a <code>long</code> representing the horizontal space in pixels around the control.
+
+#### **Type**: `Promise<number>`
+
+### elem.name <div class="specs"><i>W3C</i></div> {#name}
+
+Returns a `string` that reflects the <code>name</code> HTML attribute, specifying the name of the browsing context.
+
+#### **Type**: `Promise<string>`
+
+### elem.standby <div class="specs"><i>W3C</i></div> {#standby}
+
+Is a `string` that reflects the <code>standby</code> HTML attribute, specifying a message to display while the object loads.
+
+#### **Type**: `Promise<string>`
+
+### elem.type <div class="specs"><i>W3C</i></div> {#type}
+
+Is a `string` that reflects the <code>type</code> HTML attribute, specifying the MIME type of the resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.useMap <div class="specs"><i>W3C</i></div> {#useMap}
+
+Is a `string` that reflects the <code>usemap</code> HTML attribute, specifying a <code>&lt;map&gt;</code> element to use.
+
+#### **Type**: `Promise<string>`
+
+### elem.validationMessage <div class="specs"><i>W3C</i></div> {#validationMessage}
+
+Returns a `string` representing a localized message that describes the validation constraints that the control does not satisfy (if any). This is the empty string if the control is not a candidate for constraint validation (<code>willValidate</code> is <code>false</code>), or it satisfies its constraints.
+
+#### **Type**: `Promise<string>`
+
+### elem.validity <div class="specs"><i>W3C</i></div> {#validity}
+
+Returns a <code>ValidityState</code> with the validity states that this element is in.
+
+#### **Type**: `Promise<ValidityState>`
+
+### elem.vspace <div class="specs"><i>W3C</i></div> {#vspace}
+
+Is a <code>long</code> representing the horizontal space in pixels around the control.
+
+#### **Type**: `Promise<number>`
+
+### elem.width <div class="specs"><i>W3C</i></div> {#width}
+
+Is a `string` that reflects the <code>width</code> HTML attribute, specifying the displayed width of the resource in CSS pixels.
+
+#### **Type**: `Promise<string>`
+
+### elem.willValidate <div class="specs"><i>W3C</i></div> {#willValidate}
+
+Returns a `boolean` that indicates whether the element is a candidate for constraint validation. Always <code>false</code> for <code>HTMLObjectElement</code> objects.
+
+#### **Type**: `Promise<boolean>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +230,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +306,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +342,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +503,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -413,7 +575,25 @@ Returns the last node which is both a child of this <code>ParentNode</code> <em>
 
 #### **Type**: [`SuperElement`](./super-element)
 
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
+
 ## Methods
+
+### elem.checkValidity*()* <div class="specs"><i>W3C</i></div> {#checkValidity}
+
+Retuns a `boolean` that always is <code>true</code>, because <code>object</code> objects are never candidates for constraint validation.
+
+#### **Returns**: `Promise<boolean>`
+
+### elem.reportValidity*()* <div class="specs"><i>W3C</i></div> {#reportValidity}
+
+Returns true if the element's value has no validity problems; otherwise, returns false, fires an invalid event at the element, and (if the event isn't canceled) reports the problem to the user.
+
+#### **Returns**: `Promise<boolean>`
 
 ### elem.click*()* <div class="specs"><i>W3C</i></div> {#click}
 
@@ -771,21 +951,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `align` | `archive`
-`border` | `code`
-`codeBase` | `codeType`
-`contentDocument` | `contentWindow`
-`data` | `declare`
-`form` | `height`
-`hspace` | `name`
-`standby` | `type`
-`useMap` | `validationMessage`
-`validity` | `vspace`
-`width` | `willValidate`
-`onfullscreenchange` | `onfullscreenerror`
-`oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
+ | `contentWindow` | `onfullscreenchange`
+`onfullscreenerror` | `oncopy`
+`oncut` | `onpaste`
 `onabort` | `onanimationend`
 `onanimationiteration` | `onanimationstart`
 `onauxclick` | `onblur`
@@ -825,16 +993,13 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchend` | `ontouchmove`
 `ontouchstart` | `ontransitionend`
 `onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onwheel` |  | 
 
 #### Methods
 
  |   |   | 
  | --- | --- | 
- | `checkValidity()` | `reportValidity()`
-`setCustomValidity()` | `attachShadow()`
+ | `setCustomValidity()` | `attachShadow()`
 `computedStyleMap()` | `insertAdjacentElement()`
 `insertAdjacentHTML()` | `insertAdjacentText()`
 `releasePointerCapture()` | `removeAttribute()`

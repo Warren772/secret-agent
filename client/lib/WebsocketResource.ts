@@ -27,9 +27,15 @@ const propertyKeys: (keyof WebsocketResource)[] = ['url', 'request', 'response']
 
 const subscribeErrorMessage = `Websocket responses do not have a body. To retrieve messages, subscribe to events: on('message', ...)`;
 
-export default class WebsocketResource extends AwaitedEventTarget<IEventType, IState> {
+export default class WebsocketResource extends AwaitedEventTarget<IEventType> {
   constructor() {
-    super();
+    super(() => {
+      const state = getState(this);
+      return {
+        target: state.coreTab,
+        jsPath: state.awaitedPath.toJSON(),
+      };
+    });
     initializeConstantsAndProperties(this, [], propertyKeys);
   }
 
@@ -66,7 +72,10 @@ export default class WebsocketResource extends AwaitedEventTarget<IEventType, IS
   }
 }
 
-export function createWebsocketResource(resourceMeta: IResourceMeta, coreTab: Promise<CoreTab>) {
+export function createWebsocketResource(
+  resourceMeta: IResourceMeta,
+  coreTab: Promise<CoreTab>,
+): WebsocketResource {
   const resource = new WebsocketResource();
   const request = createResourceRequest(coreTab, resourceMeta.id);
   const response = createResourceResponse(coreTab, resourceMeta.id);

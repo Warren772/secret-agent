@@ -5,18 +5,17 @@
 UserProfiles enable you to capture the full browser state of a user after performing a series of activities. You might use this to:
  - resume the state of a "logged-in" user
  - accumulate "usage" behavior for an ongoing profile
- - share browser profiles between SecretAgent instances running on different machines
+ - share browser profiles between Agent instances running on different machines
 
 ## Constructor
 
-This "state" is not instantiated, but retrieved from a SecretAgent instance: [agent.exportUserProfile()](../basic-interfaces/secret-agent#export-profile).
+This "state" is not instantiated, but retrieved from an Agent instance: [agent.exportUserProfile()](/docs/basic-interfaces/agent#export-profile).
 
-State is stored for all domains (origins) that are loaded into a window at the time of export. The exported state is JSON with additional type information for IndexedDB ([typeson](https://github.com/dfahlander/typeson).
+State is stored for all domains (origins) that are loaded into a window at the time of export. The exported state is JSON with additional type information for IndexedDB complex objects.
 
-When you restore a UserProfile, Secret Agent will restore the Cookies, Dom Storage and IndexedDB records for all domains that are included in the state.
+When you restore a UserProfile, SecretAgent will restore the Cookies, Dom Storage and IndexedDB records for all domains that are included in the state.
 
 ```js
-const agent = new SecretAgent();
 await agent.goto('https://dataliberationfoundation.org');
 const theStoredProfile = await agent.exportUserProfile();
 
@@ -25,7 +24,7 @@ const theStoredProfile = await agent.exportUserProfile();
 // This browser will be instantiated with all the cookies
 // dom storage, etc from the prior session.
 
-const agentWithProfile = await new SecretAgent({
+const agentWithProfile = await handler.createAgent({
   userProfile: theStoredProfile,
 });
 ```
@@ -36,7 +35,7 @@ const agentWithProfile = await new SecretAgent({
 
 Cookies for all loaded "origins" for the browsing session.
 
-#### **Type**: [`Cookie[]`](./cookie-storage#cookie)
+#### **Type**: [`Cookie[]`](/docs/advanced/cookie-storage#cookie)
 
 ### storage
 
@@ -48,5 +47,5 @@ An object with a key for each "security origin" of a page, and value all the ass
   - indexedDB `IndexedDB[]`. An array of the `indexedDB` databases for a given domain with records stored as [typeson](https://github.com/dfahlander/typeson).
   
 #### **Type**: `object { [origin: string]: DomStorage }`
-  - key `string`. The "security origin" of a page or iFrame as defined by Chromium.
+  - key `string`. The "security origin" of a page or iFrame as defined by Chrome.
   - value [DomStorage](#dom-storage). The `DomStorage` entry for the given origin.

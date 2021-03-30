@@ -4,6 +4,108 @@
 
 ## Properties
 
+### elem.alt <div class="specs"><i>W3C</i></div> {#alt}
+
+A `string` that reflects the <code>alt</code> HTML attribute, thus indicating the alternate fallback content to be displayed if the image has not been loaded.
+
+#### **Type**: `Promise<string>`
+
+### elem.complete <div class="specs"><i>W3C</i></div> {#complete}
+
+Returns a `boolean` that is <code>true</code> if the browser has finished fetching the image, whether successful or not. That means this value is also <code>true</code> if the image has no <code>src</code> value indicating an image to load.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.crossOrigin <div class="specs"><i>W3C</i></div> {#crossOrigin}
+
+A `string` specifying the CORS setting for this image element. See CORS settings attributes for further details. This may be <code>null</code> if CORS is not used.
+
+#### **Type**: `Promise<string>`
+
+### elem.currentSrc <div class="specs"><i>W3C</i></div> {#currentSrc}
+
+Returns a `string` representing the URL from which the currently displayed image was loaded. This may change as the image is adjusted due to changing conditions, as directed by any media queries which are in place.
+
+#### **Type**: `Promise<string>`
+
+### elem.decoding <div class="specs"><i>W3C</i></div> {#decoding}
+
+An optional `string` representing a hint given to the browser on how it should decode the image. If this value is provided, it must be one of the possible permitted values: <code>sync</code> to decode the image synchronously, <code>async</code> to decode it asynchronously, or <code>auto</code> to indicate no preference (which is the default). Read the <code>decoding</code> page for details on the implications of this property's values.
+
+#### **Type**: `Promise<string>`
+
+### elem.height <div class="specs"><i>W3C</i></div> {#height}
+
+An integer value that reflects the <code>height</code> HTML attribute, indicating the rendered height of the image in CSS pixels.
+
+#### **Type**: `Promise<number>`
+
+### elem.isMap <div class="specs"><i>W3C</i></div> {#isMap}
+
+A `boolean` that reflects the <code>ismap</code> HTML attribute, indicating that the image is part of a server-side image map. This is different from a client-side image map, specified using an <code>&lt;img&gt;</code> element and a corresponding <code>&lt;map&gt;</code> which contains <code>&lt;area&gt;</code> elements indicating the clickable areas in the image. The image <em>must</em> be contained within an <code>&lt;a&gt;</code> element; see the <code>ismap</code> page for details.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.naturalHeight <div class="specs"><i>W3C</i></div> {#naturalHeight}
+
+Returns an integer value representing the intrinsic height of the image in CSS pixels, if it is available; else, it shows <code>0</code>. This is the height the image would be if it were rendered at its natural full size.
+
+#### **Type**: `Promise<number>`
+
+### elem.naturalWidth <div class="specs"><i>W3C</i></div> {#naturalWidth}
+
+An integer value representing the intrinsic width of the image in CSS pixels, if it is available; otherwise, it will show <code>0</code>. This is the width the image would be if it were rendered at its natural full size.
+
+#### **Type**: `Promise<number>`
+
+### elem.referrerPolicy <div class="specs"><i>W3C</i></div> {#referrerPolicy}
+
+A `string` that reflects the <code>referrerpolicy</code> HTML attribute, which tells the user agent how to decide which referrer to use in order to fetch the image. Read this article for details on the possible values of this string.
+
+#### **Type**: `Promise<string>`
+
+### elem.sizes <div class="specs"><i>W3C</i></div> {#sizes}
+
+A `string` reflecting the <code>sizes</code> HTML attribute. This string specifies a list of comma-separated conditional sizes for the image; that is, for a given viewport size, a particular image size is to be used. Read the documentation on the <code>sizes</code> page for details on the format of this string.
+
+#### **Type**: `Promise<string>`
+
+### elem.src <div class="specs"><i>W3C</i></div> {#src}
+
+A `string` that reflects the <code>src</code> HTML attribute, which contains the full URL of the image including base URI. You can load a different image into the element by changing the URL in the <code>src</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.srcset <div class="specs"><i>W3C</i></div> {#srcset}
+
+A `string` reflecting the <code>srcset</code> HTML attribute. This specifies a list of candidate images, separated by commas (<code>',', U+002C COMMA</code>). Each candidate image is a URL followed by a space, followed by a specially-formatted string indicating the size of the image. The size may be specified either the width or a size multiple. Read the <code>srcset</code> page for specifics on the format of the size substring.
+
+#### **Type**: `Promise<string>`
+
+### elem.useMap <div class="specs"><i>W3C</i></div> {#useMap}
+
+A `string` reflecting the <code>usemap</code> HTML attribute, containing the page-local URL of the <code>&lt;map&gt;</code> element describing the image map to use. The page-local URL is a pound (hash) symbol (<code>#</code>) followed by the ID of the <code>&lt;map&gt;</code> element, such as <code>#my-map-element</code>. The <code>&lt;map&gt;</code> in turn contains <code>&lt;area&gt;</code> elements indicating the clickable areas in the image.
+
+#### **Type**: `Promise<string>`
+
+### elem.width <div class="specs"><i>W3C</i></div> {#width}
+
+An integer value that reflects the <code>width</code> HTML attribute, indicating the rendered width of the image in CSS pixels.
+
+#### **Type**: `Promise<number>`
+
+### elem.x <div class="specs"><i>W3C</i></div> {#x}
+
+An integer indicating the horizontal offset of the left border edge of the image's CSS layout box relative to the origin of the <code>&lt;html&gt;</code> element's containing block.
+
+#### **Type**: `Promise<number>`
+
+### elem.y <div class="specs"><i>W3C</i></div> {#y}
+
+The integer vertical offset of the top border edge of the image's CSS layout box relative to the origin of the <code>&lt;html&gt;</code> element's containing block.
+
+#### **Type**: `Promise<number>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +206,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +282,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +318,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +479,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -413,7 +551,19 @@ Returns the last node which is both a child of this <code>ParentNode</code> <em>
 
 #### **Type**: [`SuperElement`](./super-element)
 
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
+
 ## Methods
+
+### elem.decode*()* <div class="specs"><i>W3C</i></div> {#decode}
+
+Returns a <code>Promise</code> that resolves when the image is decoded and it's safe to append the image to the DOM. This prevents rendering of the next frame from having to pause to decode the image, as would happen if an undecoded image were added to the DOM.
+
+#### **Returns**: `Promise<void>`
 
 ### elem.click*()* <div class="specs"><i>W3C</i></div> {#click}
 
@@ -771,19 +921,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `alt` | `complete`
-`crossOrigin` | `currentSrc`
-`decoding` | `height`
-`isMap` | `naturalHeight`
-`naturalWidth` | `referrerPolicy`
-`sizes` | `src`
-`srcset` | `useMap`
-`width` | `x`
-`y` | `onfullscreenchange`
-`onfullscreenerror` | `oncopy`
-`oncut` | `onpaste`
-`style` | `contentEditable`
-`isContentEditable` | `onabort`
+ | `onfullscreenchange` | `onfullscreenerror`
+`oncopy` | `oncut`
+`onpaste` | `onabort`
 `onanimationend` | `onanimationiteration`
 `onanimationstart` | `onauxclick`
 `onblur` | `oncancel`
@@ -822,29 +962,26 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchcancel` | `ontouchend`
 `ontouchmove` | `ontouchstart`
 `ontransitionend` | `onvolumechange`
-`onwaiting` | `onwheel`
-`dataset` | `nonce`
-`tabIndex` | `assignedSlot` | 
+`onwaiting` | `onwheel` | 
 
 #### Methods
 
  |   |   | 
  | --- | --- | 
- | `decode()` | `attachShadow()`
-`computedStyleMap()` | `insertAdjacentElement()`
-`insertAdjacentHTML()` | `insertAdjacentText()`
-`releasePointerCapture()` | `removeAttribute()`
-`removeAttributeNode()` | `removeAttributeNS()`
-`scroll()` | `scrollBy()`
-`scrollTo()` | `setAttribute()`
-`setAttributeNode()` | `setAttributeNodeNS()`
-`setAttributeNS()` | `setPointerCapture()`
-`toggleAttribute()` | `appendChild()`
-`cloneNode()` | `insertBefore()`
-`removeChild()` | `replaceChild()`
-`addEventListener()` | `dispatchEvent()`
-`removeEventListener()` | `animate()`
-`getAnimations()` | `after()`
-`before()` | `remove()`
-`replaceWith()` | `append()`
-`prepend()` |  | 
+ | `attachShadow()` | `computedStyleMap()`
+`insertAdjacentElement()` | `insertAdjacentHTML()`
+`insertAdjacentText()` | `releasePointerCapture()`
+`removeAttribute()` | `removeAttributeNode()`
+`removeAttributeNS()` | `scroll()`
+`scrollBy()` | `scrollTo()`
+`setAttribute()` | `setAttributeNode()`
+`setAttributeNodeNS()` | `setAttributeNS()`
+`setPointerCapture()` | `toggleAttribute()`
+`appendChild()` | `cloneNode()`
+`insertBefore()` | `removeChild()`
+`replaceChild()` | `addEventListener()`
+`dispatchEvent()` | `removeEventListener()`
+`animate()` | `getAnimations()`
+`after()` | `before()`
+`remove()` | `replaceWith()`
+`append()` | `prepend()` | 

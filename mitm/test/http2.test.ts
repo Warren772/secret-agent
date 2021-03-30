@@ -9,6 +9,7 @@ import HttpRequestHandler from '../handlers/HttpRequestHandler';
 import HeadersHandler from '../handlers/HeadersHandler';
 import MitmRequestContext from '../lib/MitmRequestContext';
 import { parseRawHeaders } from '../lib/Utils';
+import CacheHandler from '../handlers/CacheHandler';
 
 const mocks = {
   httpRequestHandler: {
@@ -18,12 +19,12 @@ const mocks = {
     create: jest.spyOn(MitmRequestContext, 'create'),
   },
   HeadersHandler: {
-    waitForResource: jest.spyOn(HeadersHandler, 'waitForBrowserRequest'),
+    determineResourceType: jest.spyOn(HeadersHandler, 'determineResourceType'),
   },
 };
 
 beforeAll(() => {
-  mocks.HeadersHandler.waitForResource.mockImplementation(async () => {
+  mocks.HeadersHandler.determineResourceType.mockImplementation(async () => {
     return {
       resourceType: 'Document',
     } as any;
@@ -53,7 +54,7 @@ test('should be able to handle an http->http2 request', async () => {
   expect(mocks.httpRequestHandler.onRequest).toBeCalledTimes(0);
 
   const res = await Helpers.httpGet(server.baseUrl, proxyHost, proxyCredentials);
-  expect(res.includes('h2 secure as anything!')).toBeTruthy();
+  expect(res).toBe('h2 secure as anything!');
   expect(mocks.httpRequestHandler.onRequest).toBeCalledTimes(1);
   await session.close();
 });
@@ -79,6 +80,25 @@ test('should be able to handle an http2->http2 request', async () => {
   const call = mocks.MitmRequestContext.create.mock.calls[0];
   expect(call[0].isUpgrade).toBe(false);
   expect(call[0].clientToProxyRequest).toBeInstanceOf(http2.Http2ServerRequest);
+});
+
+test('should handle server closing connection', async () => {
+  const server = await Helpers.runHttp2Server((req, res1) => {
+    res1.end('h2 closing soon!');
+    res1.stream.close(2);
+  });
+
+  const session = new RequestSession('h2-close', 'any agent', null);
+  Helpers.needsClosing.push(session);
+  const proxyCredentials = session.getProxyCredentials();
+
+  const client = await createH2Connection(session.sessionId, server.baseUrl, proxyCredentials);
+
+  const h2stream = client.request({
+    ':path': '/',
+  });
+  const buffer = await Helpers.readableToBuffer(h2stream);
+  expect(buffer.toString()).toBe('h2 closing soon!');
 });
 
 it('should send http1 response headers through proxy', async () => {
@@ -194,15 +214,15 @@ test('should handle h2 client going to h1 request', async () => {
   });
   const buffer = await Helpers.readableToBuffer(h2stream);
   expect(buffer.toString()).toBe('Gtg');
-  expect(responseHeaders).toEqual({
-    ':status': 200,
-    'cache-control': 'public',
-    date: expect.any(String),
-  });
+  expect(responseHeaders[':status']).toBe(200);
+  expect(responseHeaders['cache-control']).toBe('public');
+  expect(responseHeaders.date).toBeTruthy();
 });
 
 test('should handle cache headers for h2', async () => {
   const etags: string[] = [];
+  CacheHandler.isEnabled = true;
+  Helpers.onClose(() => (CacheHandler.isEnabled = false));
   const server = await Helpers.runHttp2Server((req, res1) => {
     if (req.headers[':path'] === '/cached') {
       etags.push(req.headers['if-none-match'] as string);
@@ -263,7 +283,7 @@ async function createH2Connection(sessionId: string, url: string, proxyCredentia
   const hostUrl = new URL(url);
   const mitmServer = await MitmServer.start();
   Helpers.onClose(() => mitmServer.close());
-  const proxyHost = `http://localhost:${mitmServer.port}`;
+  const proxyHost = `http://${proxyCredentials}@localhost:${mitmServer.port}`;
 
   const tlsConnection = new MitmSocket(sessionId, {
     host: 'localhost',
@@ -272,12 +292,13 @@ async function createH2Connection(sessionId: string, url: string, proxyCredentia
     clientHelloId: 'Chrome72',
     isSsl: url.startsWith('https'),
     proxyUrl: proxyHost,
-    proxyAuthBase64: Buffer.from(proxyCredentials).toString('base64'),
     rejectUnauthorized: false,
   });
   Helpers.onClose(async () => tlsConnection.close());
   await tlsConnection.connect();
-  return http2.connect(url, {
+  const client = http2.connect(url, {
     createConnection: () => tlsConnection.socket,
   });
+  Helpers.onClose(async () => client.close());
+  return client;
 }

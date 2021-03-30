@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Rectangle } from 'electron';
 import { resolve } from 'path';
 import Application from '../Application';
 import ReplayApi from '~backend/api';
@@ -44,6 +44,7 @@ export default class Window {
       minHeight: 450,
       width: 900,
       height: 700,
+      transparent: false,
       titleBarStyle: 'hiddenInset',
       webPreferences: {
         nodeIntegration: true,
@@ -87,13 +88,13 @@ export default class Window {
     this.webContents.send(channel, ...args);
   }
 
-  public async goBack() {
+  public goBack() {
     if (this.hasBack()) {
       return this.goToHistory(this.navCursor - 1);
     }
   }
 
-  public async goForward() {
+  public goForward() {
     if (this.hasNext()) {
       return this.goToHistory(this.navCursor + 1);
     }
@@ -142,6 +143,22 @@ export default class Window {
     });
   }
 
+  public addRelatedSession(related: { id: string; name: string }) {
+    if (
+      !this.replayApi ||
+      this.replayApi.saSession.relatedSessions.some(x => x.id === related.id)
+    ) {
+      return;
+    }
+
+    this.replayApi.saSession.relatedSessions.push(related);
+    this.sendToRenderer('location:updated', {
+      saSession: this.replayApi.saSession,
+      hasNext: this.hasNext(),
+      hasBack: this.hasBack(),
+    });
+  }
+
   public onNewReplayTab(tab: ISessionTab) {
     this.sendToRenderer('replay:new-tab', tab);
   }
@@ -150,12 +167,13 @@ export default class Window {
     this.sendToRenderer('replay:page-url', url);
   }
 
-  public setActiveTabId(id: string) {
+  public setActiveTabId(id: number) {
     this.sendToRenderer('replay:active-tab', id);
   }
 
-  public async loadReplayTab(id: string) {
+  public async loadReplayTab(id: number) {
     await this.replayView.loadTab(id);
+    await this.fixBounds();
   }
 
   public replayOnFocus() {
@@ -163,22 +181,28 @@ export default class Window {
   }
 
   public async fixBounds() {
+    const newBounds = await this.getAvailableBounds();
+    if (this.isReplayActive) {
+      this.replayView.fixBounds(newBounds);
+    } else {
+      this.appView.fixBounds(newBounds);
+    }
+  }
+
+  public async getAvailableBounds(): Promise<Rectangle> {
     const { width, height } = this.browserWindow.getContentBounds();
     const toolbarContentHeight = await this.getHeaderHeight();
 
-    const newBounds = {
+    const bounds = {
       x: 0,
       y: this.fullscreen ? 0 : toolbarContentHeight + 1,
       width,
       height: this.fullscreen ? height : height - toolbarContentHeight,
     };
-
     if (this.isReplayActive) {
-      newBounds.height -= TOOLBAR_HEIGHT;
-      this.replayView.fixBounds(newBounds);
-    } else {
-      this.appView.fixBounds(newBounds);
+      bounds.height -= TOOLBAR_HEIGHT;
     }
+    return bounds;
   }
 
   public hideMessageOverlay(messageId: string) {

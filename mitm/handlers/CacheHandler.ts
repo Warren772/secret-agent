@@ -3,24 +3,26 @@ import IMitmRequestContext from '../interfaces/IMitmRequestContext';
 import ResourceState from '../interfaces/ResourceState';
 
 export default class CacheHandler {
+  public static isEnabled = Boolean(JSON.parse(process.env.SA_ENABLE_MITM_CACHE ?? 'false'));
   public didProposeCachedResource = false;
   public shouldServeCachedData = false;
   private readonly data: Buffer[] = [];
 
-  public get buffer() {
+  public get buffer(): Buffer {
     return Buffer.concat(this.data);
   }
 
-  public get cacheData() {
+  public get cacheData(): Buffer | null {
     if (!this.shouldServeCachedData) return null;
     return this.buffer;
   }
 
   constructor(readonly responseCache: HttpResponseCache, readonly ctx: IMitmRequestContext) {}
 
-  public onRequest() {
+  public onRequest(): void {
     const ctx = this.ctx;
     ctx.setState(ResourceState.CheckCacheOnRequest);
+    if (!CacheHandler.isEnabled) return;
 
     // only cache get (don't do preflight, post, etc)
     if (ctx.method === 'GET' && !ctx.requestLowerHeaders['if-none-match']) {
@@ -34,8 +36,9 @@ export default class CacheHandler {
     }
   }
 
-  public onHttp2PushStream() {
+  public onHttp2PushStream(): void {
     this.ctx.setState(ResourceState.CheckCacheOnRequest);
+    if (!CacheHandler.isEnabled) return;
     if (this.ctx.method === 'GET') {
       const cached = this.responseCache?.get(this.ctx.url.href);
       if (cached) {
@@ -45,7 +48,7 @@ export default class CacheHandler {
     }
   }
 
-  public onResponseData(chunk: Buffer) {
+  public onResponseData(chunk: Buffer): Buffer {
     let data = chunk;
     if (this.shouldServeCachedData) {
       data = null;
@@ -55,16 +58,18 @@ export default class CacheHandler {
     return data;
   }
 
-  public onResponseHeaders() {
+  public onResponseHeaders(): void {
+    if (!CacheHandler.isEnabled) return;
     if (this.didProposeCachedResource && this.ctx.status === 304) {
       this.useCached();
       this.ctx.status = 200;
     }
   }
 
-  public onResponseEnd() {
+  public onResponseEnd(): void {
     const ctx = this.ctx;
     ctx.setState(ResourceState.CheckCacheOnResponseEnd);
+    if (!CacheHandler.isEnabled) return;
     if (
       ctx.method === 'GET' &&
       !this.didProposeCachedResource &&
@@ -76,7 +81,7 @@ export default class CacheHandler {
     }
   }
 
-  private useCached() {
+  private useCached(): void {
     const { responseHeaders, url } = this.ctx;
     const cached = this.responseCache?.get(url.href);
     let isLowerKeys = false;

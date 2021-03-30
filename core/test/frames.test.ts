@@ -1,98 +1,120 @@
 import { ITestKoaServer } from '@secret-agent/testing/helpers';
-import { InteractionCommand } from '@secret-agent/core-interfaces/IInteractions';
-import { LocationStatus } from '@secret-agent/core-interfaces/Location';
 import { Helpers } from '@secret-agent/testing';
-import { Page } from '@secret-agent/puppet-chrome/lib/Page';
-import Core from '../index';
+import Core, { Session } from '../index';
 
 let koaServer: ITestKoaServer;
 beforeAll(async () => {
-  await Core.prewarm();
+  await Core.start();
   koaServer = await Helpers.runKoaServer(true);
 });
 afterAll(Helpers.afterAll);
 afterEach(Helpers.afterEach);
 
-test('should handle opening a page', async () => {
-  const meta = await Core.createTab();
-  const core = Core.byTabId[meta.tabId];
-  await core.goto(koaServer.baseUrl);
-  await core.waitForLoad(LocationStatus.AllContentLoaded);
+test('can wait for sub-frames to load', async () => {
+  const connection = Core.addConnection();
+  Helpers.onClose(() => connection.disconnect());
+  const meta = await connection.createSession();
+  const tab = Session.getTab(meta);
+  koaServer.get('/main', ctx => {
+    ctx.body = `
+        <body>
+        <h1>Iframe Page</h1>
+<iframe name="sub" src="/delay"></iframe>
+        </body>
+      `;
+  });
 
-  // @ts-ignore
-  const tab = core.tab;
+  koaServer.get('/delay', async ctx => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    ctx.body = `
+        <body>
+        <h1>SubPage</h1>
+        </body>
+      `;
+  });
+  await tab.goto(`${koaServer.baseUrl}/main`);
+  await tab.waitForElement(['document', ['querySelector', 'iframe']]);
 
-  const page = tab.puppetPage as Page;
+  const frames = await tab.getFrameEnvironments();
+  expect(frames).toHaveLength(2);
+  const frameMeta = frames.find(x => x.parentFrameId !== null);
+  const subFrame = tab.frameEnvironmentsById.get(frameMeta.id);
 
-  // @ts-ignore
-  expect(page.mainFrame.getActiveContextId(false)).toBeTruthy();
-  // @ts-ignore
-  expect(page.mainFrame.getActiveContextId(tab.mainFrameId)).toBeTruthy();
+  await expect(subFrame.waitForLoad('PaintingStable')).resolves.toBe(undefined);
 
-  await core.close();
+  await tab.close();
 });
 
-test('should track navigations and redirects', async () => {
-  const meta = await Core.createTab();
-  const core = Core.byTabId[meta.tabId];
-  // @ts-ignore
-  const tab = core.tab;
-  koaServer.get('/page1', ctx => {
-    ctx.body = `
-        <body>
-          <a href="/page2">Click Me</a>
-        </body>
-      `;
-  });
-  koaServer.get('/page2', ctx => {
-    ctx.redirect('/pagePre3');
-  });
-  koaServer.get('/pagePre3', ctx => {
-    ctx.redirect('/page3');
-  });
-  koaServer.get('/page3', ctx => {
-    ctx.body = `
-        <body>
-          <a href="/page4">Find Me</a>
-        </body>
-      `;
-  });
-  await core.goto(`${koaServer.baseUrl}/page1`);
+test('should allow query selectors in cross-domain frames', async () => {
+  const connection = Core.addConnection();
+  Helpers.onClose(() => connection.disconnect());
+  const meta = await connection.createSession();
 
-  const pageLink1 = await core.execJsPath([
-    'window',
-    'document',
-    ['querySelector', 'a'],
-    'textContent',
-  ]);
-  expect(pageLink1.value).toBe('Click Me');
-  await core.interact([
-    {
-      command: InteractionCommand.click,
-      mousePosition: ['window', 'document', ['querySelector', 'a']],
+  const session = Session.get(meta.sessionId);
+  const tab = Session.getTab(meta);
+  koaServer.get('/iframePage', ctx => {
+    ctx.body = `
+        <body>
+        <h1>Iframe Page</h1>
+<iframe src="http://framesy.org/page"></iframe>
+        </body>
+      `;
+  });
+
+  session.mitmRequestSession.blockedResources = {
+    urls: ['http://framesy.org/page'],
+    types: [],
+    handlerFn: (request, response) => {
+      response.end(`<html lang="en"><body>
+<h1>Framesy Page</h1>
+<div>This is content inside the frame</div>
+</body></html>`);
+      return true;
     },
-  ]);
+  };
 
-  await core.waitForLoad(LocationStatus.AllContentLoaded);
+  await tab.goto(`${koaServer.baseUrl}/iframePage`);
 
-  const page = tab.puppetPage as Page;
-  const frames = page.framesManager;
-  // @ts-ignore
-  expect(page.mainFrame.getActiveContextId(false)).toBeTruthy();
-  // @ts-ignore
-  expect(page.mainFrame.getActiveContextId()).toBeTruthy();
-
-  // @ts-ignore
-  expect(frames.activeContexts.size).toBe(2);
-
-  // make sure we can use the active context associated with the new window
-  const pageLink = await core.execJsPath([
+  const outerH1 = await tab.execJsPath([
     'window',
     'document',
-    ['querySelector', 'a'],
+    ['querySelector', 'h1'],
     'textContent',
   ]);
-  expect(pageLink.value).toBe('Find Me');
+  expect(outerH1.value).toBe('Iframe Page');
 
-  await core.close();
+  // should not allow cross-domain access
+  await expect(
+    tab.execJsPath([
+      'window',
+      'document',
+      ['querySelector', 'iframe'],
+      'contentDocument',
+      ['querySelector', 'h1'],
+      'textContent',
+    ]),
+  ).rejects.toThrowError();
+
+  const frameMetas = await tab.getFrameEnvironments();
+  const frames = await Promise.all(
+    frameMetas.map(async x => {
+      if (x.url) return x;
+
+      const env = tab.frameEnvironmentsById.get(x.id);
+      await env.waitForLoad('DomContentLoaded');
+      return env.toJSON();
+    }),
+  );
+  const innerFrameMeta = frames.find(x => x.url === 'http://framesy.org/page');
+  const innerFrame = tab.frameEnvironmentsById.get(innerFrameMeta.id);
+
+  const innerH1 = await innerFrame.execJsPath([
+    'window',
+    'document',
+    ['querySelector', 'h1'],
+    'textContent',
+  ]);
+  expect(innerH1.value).toBe('Framesy Page');
+
+  await tab.close();
 });

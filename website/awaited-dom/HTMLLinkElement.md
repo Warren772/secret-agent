@@ -4,6 +4,66 @@
 
 ## Properties
 
+### elem.as <div class="specs"><i>W3C</i></div> {#as}
+
+Is a `string` representing the type of content being loaded by the HTML link.
+
+#### **Type**: `Promise<string>`
+
+### elem.crossOrigin <div class="specs"><i>W3C</i></div> {#crossOrigin}
+
+Is a `string` that corresponds to the CORS setting for this link element. See CORS&nbsp;settings attributes for details.
+
+#### **Type**: `Promise<string>`
+
+### elem.href <div class="specs"><i>W3C</i></div> {#href}
+
+Is a `string` representing the URI&nbsp;for the target resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.hreflang <div class="specs"><i>W3C</i></div> {#hreflang}
+
+Is a `string` representing&nbsp;the language code for the linked resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.media <div class="specs"><i>W3C</i></div> {#media}
+
+Is a `string` representing a list of one or more media formats to which the resource applies.
+
+#### **Type**: `Promise<string>`
+
+### elem.referrerPolicy <div class="specs"><i>W3C</i></div> {#referrerPolicy}
+
+Is a `string` that reflects the <code>referrerpolicy</code> HTML attribute indicating which referrer to use.
+
+#### **Type**: `Promise<string>`
+
+### elem.rel <div class="specs"><i>W3C</i></div> {#rel}
+
+Is a `string` representing&nbsp;the forward relationship of the linked resource from the document to the resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.relList <div class="specs"><i>W3C</i></div> {#relList}
+
+Is a <code>DOMTokenList</code> that reflects the <code>rel</code> HTML attribute, as a list of tokens.
+
+#### **Type**: [`DOMTokenList`](./dom-token-list)
+
+### elem.sizes <div class="specs"><i>W3C</i></div> {#sizes}
+
+Is a <code>DOMSettableTokenList</code> that reflects the <code>sizes</code> HTML attribute, as a list of tokens.
+
+#### **Type**: [`DOMTokenList`](./dom-token-list)
+
+### elem.type <div class="specs"><i>W3C</i></div> {#type}
+
+Is a `string` representing&nbsp;the MIME type of the linked resource.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +164,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +240,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +276,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +437,48 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.sheet <div class="specs"><i>W3C</i></div> {#sheet}
+
+Returns the <code>CSSStyleSheet</code> object associated with the given element, or <code>null</code> if there is none.
+
+#### **Type**: [`SuperStyleSheet`](./super-style-sheet)
+
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +514,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,16 +879,9 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `as` | `crossOrigin`
-`href` | `hreflang`
-`media` | `referrerPolicy`
-`rel` | `relList`
-`sizes` | `type`
-`onfullscreenchange` | `onfullscreenerror`
-`sheet` | `oncopy`
-`oncut` | `onpaste`
-`style` | `contentEditable`
-`isContentEditable` | `onabort`
+ | `onfullscreenchange` | `onfullscreenerror`
+`oncopy` | `oncut`
+`onpaste` | `onabort`
 `onanimationend` | `onanimationiteration`
 `onanimationstart` | `onauxclick`
 `onblur` | `oncancel`
@@ -819,9 +920,7 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 `ontouchcancel` | `ontouchend`
 `ontouchmove` | `ontouchstart`
 `ontransitionend` | `onvolumechange`
-`onwaiting` | `onwheel`
-`dataset` | `nonce`
-`tabIndex` | `assignedSlot` | 
+`onwaiting` | `onwheel` | 
 
 #### Methods
 

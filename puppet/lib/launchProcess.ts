@@ -18,10 +18,10 @@ import * as childProcess from 'child_process';
 import { StdioOptions } from 'child_process';
 import { Readable, Writable } from 'stream';
 import * as readline from 'readline';
-import Path from 'path';
+import * as Path from 'path';
 import Log from '@secret-agent/commons/Logger';
+import ILaunchedProcess from '@secret-agent/puppet-interfaces/ILaunchedProcess';
 import { PipeTransport } from './PipeTransport';
-import ILaunchedProcess from '../interfaces/ILaunchedProcess';
 
 const { log } = Log(module);
 
@@ -31,13 +31,8 @@ export default function launchProcess(
   executablePath: string,
   processArguments: string[],
   env: NodeJS.ProcessEnv,
-  pipeIo = true,
-) {
+): Promise<ILaunchedProcess> {
   const stdio: StdioOptions = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
-  if (!pipeIo) {
-    stdio[1] = 'ignore';
-    stdio[2] = 'ignore';
-  }
 
   log.info(`Puppet.LaunchProcess`, { sessionId: null, executablePath, processArguments });
   const launchedProcess = childProcess.spawn(executablePath, processArguments, {
@@ -49,61 +44,59 @@ export default function launchProcess(
     env,
     stdio,
   });
+  // Prevent Unhandled 'error' event.
+  launchedProcess.on('error', () => {});
+
   if (!launchedProcess.pid) {
-    launchedProcess.once('error', error => {
-      if (logProcessExit) {
-        log.error('Puppet.LaunchError', { error, sessionId: null });
-      }
+    return new Promise<ILaunchedProcess>((resolve, reject) => {
+      launchedProcess.once('error', error => {
+        reject(new Error(`Failed to launch browser: ${error}`));
+      });
     });
-    throw new Error('Failed to launch');
   }
 
-  let exe = executablePath
-    .split(Path.sep)
-    .pop()
-    .toLowerCase();
+  let exe = executablePath.split(Path.sep).pop().toLowerCase();
   exe = exe[0].toUpperCase() + exe.slice(1);
 
-  if (pipeIo) {
-    const stdout = readline.createInterface({ input: launchedProcess.stdout });
-    stdout.on('line', line => {
-      log.stats(`${exe}.stdout`, { message: line, sessionId: null });
-    });
+  const stdout = readline.createInterface({ input: launchedProcess.stdout });
+  stdout.on('line', line => {
+    log.stats(`${exe}.stdout`, { message: line, sessionId: null });
+  });
 
-    const stderr = readline.createInterface({ input: launchedProcess.stderr });
-    stderr.on('line', line => {
-      log.error(`${exe}.stderr`, { message: line, sessionId: null });
-    });
-  }
+  const stderr = readline.createInterface({ input: launchedProcess.stderr });
+  stderr.on('line', line => {
+    log.warn(`${exe}.stderr`, { message: line, sessionId: null });
+  });
+
   let processKilled = false;
   launchedProcess.once('exit', (exitCode, signal) => {
     processKilled = true;
     if (logProcessExit) {
-      log.info(`${exe}.ProcessExited`, { exitCode, signal, sessionId: null });
+      log.stats(`${exe}.ProcessExited`, { exitCode, signal, sessionId: null });
     }
   });
-
-  process.once('exit', close.bind(this));
 
   const transport = new PipeTransport(
     launchedProcess.stdio[3] as Writable,
     launchedProcess.stdio[4] as Readable,
   );
 
-  return {
+  return Promise.resolve(<ILaunchedProcess>{
     transport,
     close,
-  } as ILaunchedProcess;
+  });
 
-  function close() {
+  function close(): Promise<void> {
     if (launchedProcess.killed || processKilled) return;
 
     try {
+      const closed = new Promise<void>(resolve => launchedProcess.once('exit', resolve));
       if (process.platform === 'win32') {
         childProcess.execSync(`taskkill /pid ${launchedProcess.pid} /T /F`);
       } else {
         launchedProcess.kill('SIGKILL');
       }
+      return closed;
     } catch (error) {
       // might have already been kill off
     }

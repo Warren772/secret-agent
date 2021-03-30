@@ -39,8 +39,8 @@ export default class Playbar extends Vue {
   private durationMillis = 0;
   private ticks: number[] = [];
   private currentTickValue = 0;
+  private tickRealtimeOffsetMs = 0;
   private isPlaying = false;
-  private intervalTime = 50;
 
   private nextTimeout: number;
 
@@ -100,19 +100,34 @@ export default class Playbar extends Vue {
   }
 
   private play() {
+    this.tickRealtimeOffsetMs = 0;
     this.isPlaying = true;
-    clearTimeout(this.nextTimeout);
     this.playbackTick();
   }
 
   private async playbackTick() {
-    console.log('playback tick', this.currentTickValue);
-    this.currentTickValue = await ipcRenderer.invoke('next-tick');
-    if (this.currentTickValue === 100) {
-      this.pause();
+    const next = await ipcRenderer.invoke('next-tick', this.tickRealtimeOffsetMs ?? 0);
+    this.currentTickValue = next.playbarOffset || 0;
+    let millisToNextTick = Number(next.millisToNextTick || 0);
+
+    console.log(
+      'Playbar at %s. Next tick in %s. Previous offset of %s',
+      this.currentTickValue,
+      millisToNextTick,
+      this.tickRealtimeOffsetMs,
+    );
+    if (millisToNextTick < 0) {
+      this.tickRealtimeOffsetMs = millisToNextTick;
+      millisToNextTick = 0;
+    } else {
+      this.tickRealtimeOffsetMs = 0;
     }
+    if (this.currentTickValue === 100) {
+      this.isPlaying = false;
+    }
+
     if (this.isPlaying) {
-      this.nextTimeout = setTimeout(() => this.playbackTick(), this.intervalTime) as any;
+      this.nextTimeout = setTimeout(this.playbackTick.bind(this), millisToNextTick) as any;
     }
   }
 
@@ -149,7 +164,7 @@ export default class Playbar extends Vue {
   private onValueChange(value: number) {
     // this is called when someone clicks, so pause the playback
     this.pause();
-    ipcRenderer.send('on-tick', value);
+    ipcRenderer.send('on-tick-drag', value);
   }
 
   private closestTick(pos: number) {
@@ -196,12 +211,13 @@ export default class Playbar extends Vue {
     flex-flow: row;
     height: 100%;
     color: rgba(0, 0, 0, 0.8);
+    -webkit-app-region: no-drag;
 
     .start {
       border: 1px solid var(--toolbarBorderColor);
       border-radius: 4px;
       padding: 4px 10px;
-
+      white-space: nowrap;
       cursor: pointer;
 
       .label {
@@ -238,10 +254,17 @@ export default class Playbar extends Vue {
 
       &.hovered {
         .vue-slider-mark-step {
-          background-color: #6b96c0;
-          margin-top: -150%;
-          height: 400%;
-          width: 4px;
+          background-color: transparent;
+          margin-top: -50%;
+          margin-left: -50%;
+          border: solid #3498db;
+          opacity: 1;
+          border-width: 0 3px 3px 0;
+          display: inline-block;
+          height: 100%;
+          border-radius: 0;
+          transform: rotate(-45deg);
+          padding: 3px;
         }
       }
     }

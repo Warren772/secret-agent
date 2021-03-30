@@ -3,6 +3,173 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.1...v1.4.1-alpha.0) (2021-03-23)
+
+
+### Features
+
+* **client:** expose frames ([44a6b12](https://github.com/ulixee/secret-agent/commit/44a6b129fef6f541cffc24e8913fd76defcf3aef))
+
+
+
+
+
+# [1.4.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.4.0-alpha.0...v1.4.0-alpha.1) (2021-03-11)
+
+**Note:** Version bump only for package @secret-agent/replay
+
+
+
+
+
+# [1.4.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.3.1-alpha.1...v1.4.0-alpha.0) (2021-03-11)
+
+
+### Bug Fixes
+
+* **replay:** don’t remove preserved tags ([fe023d5](https://github.com/ulixee/secret-agent/commit/fe023d5707fb9b1c7e1bed987bbde4ba0dd6511d))
+
+
+### Features
+
+* **replay:** update for mac silicon + deps ([30ffec7](https://github.com/ulixee/secret-agent/commit/30ffec74fc06485b56344f17374a082d2055c1f1))
+
+
+
+
+
+# [1.3.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.3...v1.3.0-alpha.4) (2021-02-15)
+
+
+### Bug Fixes
+
+* **core/client:** export usable mjs/cjs ([ca149ef](https://github.com/ulixee/secret-agent/commit/ca149efbfbdf03da0fda7d127348e5de6f2a4f8b))
+
+
+
+
+
+# [1.3.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.2...v1.3.0-alpha.3) (2021-02-11)
+
+**Note:** Version bump only for package @secret-agent/replay
+
+
+
+
+
+# [1.3.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.1...v1.3.0-alpha.2) (2021-02-09)
+
+**Note:** Version bump only for package @secret-agent/replay
+
+
+
+
+
+# [1.3.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.3.0-alpha.0...v1.3.0-alpha.1) (2021-02-06)
+
+
+### Bug Fixes
+
+* some tests were failing ([91217b2](https://github.com/ulixee/secret-agent/commit/91217b2e7d79a0d8a1a9b9c2e388b5dab7af3372))
+
+
+### Features
+
+* replaced chrome 80, 81, 83 emulators with more robust os-level data ([276b269](https://github.com/ulixee/secret-agent/commit/276b26923368c5ed5636f65ad14fb2b3a9f87e9e))
+* **replay:** don’t hang if screen not available ([22edc84](https://github.com/ulixee/secret-agent/commit/22edc8412216a50b98b7cf99f6a32e0bc4687e1d)), closes [#146](https://github.com/ulixee/secret-agent/issues/146)
+* **replay:** fix ubuntu loading dashboard over replay ([a9e633a](https://github.com/ulixee/secret-agent/commit/a9e633a19099d36385cc3cc5e90108543caa9867))
+
+
+
+
+
+# [1.3.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.5...v1.3.0-alpha.0) (2021-02-02)
+
+
+### Bug Fixes
+
+* **replay:** fix replay launch in new setup on win ([add1b97](https://github.com/ulixee/secret-agent/commit/add1b97084d9d83f0cdad77362a238aeef92cf68))
+* **replay:** upgrade axios (dependabot) ([2f55df9](https://github.com/ulixee/secret-agent/commit/2f55df902cd7d3cf5e542c57c7df01f869340cf8))
+
+
+### Features
+
+* **client:** coreConnection as configuration ([ac284ca](https://github.com/ulixee/secret-agent/commit/ac284cac3fa867a9623fd841edf96d04906e3072))
+* **core:** add screenshot capability ([f075f89](https://github.com/ulixee/secret-agent/commit/f075f89636edb81c4626c51929665373069de31a))
+* **core:** convert all connections to server ([a27fafd](https://github.com/ulixee/secret-agent/commit/a27fafd9a04e52f602a557f7304164c2308006c6))
+* **core:** convert closing logs to stats ([382979d](https://github.com/ulixee/secret-agent/commit/382979df1a758de82297169465be0e57c2c87b53))
+* **core:** merge injected scripts into core ([f674f7b](https://github.com/ulixee/secret-agent/commit/f674f7b85a9cf66dd3558d849a78f6b9aa1099dc))
+* **core:** timeouts for back/fwd/goto, add reload ([bae2a8e](https://github.com/ulixee/secret-agent/commit/bae2a8eaf20b2a855c98986d5c2c9b5e11b004ec))
+* **core:** waitForPaintingStable ([1955b79](https://github.com/ulixee/secret-agent/commit/1955b791ce8a7cf20a679986e63885950efa6813))
+* **replay:** ability to launch via bin ([518d320](https://github.com/ulixee/secret-agent/commit/518d320e157b4d28e0ce99864c4f53aa5fa439a8))
+* **replay:** allow running out of a dist dir ([e5bfe21](https://github.com/ulixee/secret-agent/commit/e5bfe211e0388bd4b1be1da97356046b983b80ea))
+* **replay:** convert api to use web sockets ([18c8008](https://github.com/ulixee/secret-agent/commit/18c80087d22f3ee95ee2eb5853b422219da6ceb1))
+* **replay:** move to lighter semver lib ([5c4d1dc](https://github.com/ulixee/secret-agent/commit/5c4d1dcfaf4a79d6457857647203addbbda8eba5))
+* **replay:** prefer local build to binary ([71589cf](https://github.com/ulixee/secret-agent/commit/71589cfc0ae8f31911e72b9f3e1fd3bcc4254c35))
+* **replay:** single install of replay ([5425bee](https://github.com/ulixee/secret-agent/commit/5425bee76488ac5bff4f46d8b99eb874dd7f5a35))
+
+
+
+
+
+# [1.2.0-alpha.4](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.3...v1.2.0-alpha.4) (2020-12-22)
+
+
+### Bug Fixes
+
+* **replay:** replay crashes on win10 during load ([b6e517b](https://github.com/ulixee/secret-agent/commit/b6e517bcd6a66bf206c8a2436374cca401f5b00d))
+* **replay:** shutting down before example load ([937fd9b](https://github.com/ulixee/secret-agent/commit/937fd9b3452053687c13760c643141b7eab6534a))
+
+
+
+
+
+# [1.2.0-alpha.3](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.2...v1.2.0-alpha.3) (2020-12-16)
+
+
+### Bug Fixes
+
+* **mitm:** bubble proxy errors properly to client ([b6a72f5](https://github.com/ulixee/secret-agent/commit/b6a72f59ef8e7739654ab82b170aa0e15d38ebd0)), closes [#98](https://github.com/ulixee/secret-agent/issues/98)
+* **replay:** multiple sessions showing incorrectly ([20ba30c](https://github.com/ulixee/secret-agent/commit/20ba30caebcef42de65dee18e6b82d92c7193d9c))
+
+
+
+
+
+# [1.2.0-alpha.2](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.1...v1.2.0-alpha.2) (2020-12-01)
+
+
+### Bug Fixes
+
+* **mitm-socket:** fix cpu spiking sockets ([b71e141](https://github.com/ulixee/secret-agent/commit/b71e14158c1bb948e9ce33abf01b4522930caafe))
+* **replay:** fix stalling loads ([7ca1dbd](https://github.com/ulixee/secret-agent/commit/7ca1dbd91e59d5c5d6812ba62bec517f746b2374))
+
+
+
+
+
+# [1.2.0-alpha.1](https://github.com/ulixee/secret-agent/compare/v1.2.0-alpha.0...v1.2.0-alpha.1) (2020-11-20)
+
+
+### Features
+
+* **human-emulators:** ghost emulator ([70bcf27](https://github.com/ulixee/secret-agent/commit/70bcf273a2e995f8168dced9797d441b6eaec80b))
+
+
+
+
+
+# [1.2.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.1.0-alpha.1...v1.2.0-alpha.0) (2020-11-11)
+
+
+### Features
+
+* **core:** store data files in a single location ([c3299b6](https://github.com/ulixee/secret-agent/commit/c3299b6a0dc2fc42d7a7df3746ab34c2d8b15ea0))
+
+
+
+
+
 # [1.1.0-alpha.0](https://github.com/ulixee/secret-agent/compare/v1.0.0-alpha.21...v1.1.0-alpha.0) (2020-11-03)
 
 **Note:** Version bump only for package @secret-agent/replay

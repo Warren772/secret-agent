@@ -1,6 +1,6 @@
 export default interface ISessionMeta {
-  tabId: string;
+  tabId?: number;
+  frameId?: string;
   sessionId: string;
   sessionsDataLocation?: string;
-  replayApiServer?: string;
 }

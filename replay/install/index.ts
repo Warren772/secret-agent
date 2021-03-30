@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 import * as Fs from 'fs';
-import * as TarFs from 'tar-fs';
-import Axios from 'axios';
+import * as Https from 'https';
+import * as Tar from 'tar';
 import * as ProgressBar from 'progress';
 import { createGunzip } from 'zlib';
 import * as os from 'os';
 import * as Path from 'path';
-import { distDir, isBinaryInstalled, recordVersion, version } from './Utils';
+import { IncomingMessage } from 'http';
+import { getInstallDirectory, isBinaryInstalled, recordVersion, version } from './Utils';
 
-if (process.env.SA_REPLAY_SKIP_BINARY_DOWNLOAD) {
+if (Boolean(JSON.parse(process.env.SA_REPLAY_SKIP_BINARY_DOWNLOAD ?? 'false')) === true) {
   process.exit(0);
 }
 
@@ -26,11 +27,11 @@ if (isBinaryInstalled()) {
     win32: 'win',
   };
 
-  const response = await Axios.get(
-    `https://github.com/ulixee/secret-agent/releases/download/v${version}/replay-${version}-${platformNames[platform]}.tar.gz`,
-    {
-      responseType: 'stream',
-    },
+  let archAddon = '';
+  if (platform === 'darwin' && os.arch() === 'arm64') archAddon = '-arm64';
+
+  const response = await download(
+    `https://github.com/ulixee/secret-agent/releases/download/v${version}/replay-${version}-${platformNames[platform]}${archAddon}.tar.gz`,
   );
   const length = parseInt(response.headers['content-length'], 10);
 
@@ -43,15 +44,22 @@ if (isBinaryInstalled()) {
     width: 20,
     total: length,
   });
-  for await (const chunk of response.data) {
+  for await (const chunk of response) {
     bar.tick(chunk.length);
     output.write(chunk);
   }
 
+  const installDir = getInstallDirectory();
+  if (!Fs.existsSync(installDir)) Fs.mkdirSync(installDir, { recursive: true });
+
   await new Promise(resolve => {
     Fs.createReadStream(tmpFile)
       .pipe(createGunzip())
-      .pipe(TarFs.extract(distDir))
+      .pipe(
+        Tar.extract({
+          cwd: installDir,
+        }),
+      )
       .on('finish', resolve);
   });
 
@@ -60,3 +68,23 @@ if (isBinaryInstalled()) {
   console.error(err.stack);
   process.exit(1);
 });
+
+function download(filepath: string): Promise<IncomingMessage> {
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const req = Https.get(filepath, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return download(res.headers.location).then(resolve).catch(reject);
+      }
+
+      try {
+        resolve(res);
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', err => {
+      console.log('ERROR downloading needed Secret Agent library %s', filepath, err);
+      reject(err);
+    });
+  });
+}

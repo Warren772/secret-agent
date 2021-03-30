@@ -1,11 +1,12 @@
-import fs from 'fs';
+import * as fs from 'fs';
 import Log from '@secret-agent/commons/Logger';
-import { PageRecorderResultSet } from '@secret-agent/injected-scripts/scripts/pageEventsRecorder';
-import { IRegisteredEventListener, removeEventListeners } from '@secret-agent/commons/eventUtils';
-import { IPuppetPage } from '@secret-agent/puppet/interfaces/IPuppetPage';
+import { removeEventListeners } from '@secret-agent/commons/eventUtils';
+import { IPuppetPage } from '@secret-agent/puppet-interfaces/IPuppetPage';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
+import { PageRecorderResultSet } from '../injected-scripts/pageEventsRecorder';
 
 const domObserver = fs.readFileSync(
-  require.resolve('@secret-agent/injected-scripts/scripts/pageEventsRecorder.js'),
+  require.resolve('../injected-scripts/pageEventsRecorder.js'),
   'utf8',
 );
 
@@ -39,7 +40,10 @@ export default class DomRecorder {
     this.listeners.push(callback);
 
     await this.puppetPage.addNewDocumentScript(
-      `(function installDomRecorder(runtimeFunction) { \n\n ${domObserver.toString()} \n\n })('${runtimeFunction}');`,
+      `(function installDomRecorder(runtimeFunction) {
+    const exports = {}; // workaround for ts adding an exports variable
+    ${domObserver.toString()}
+})('${runtimeFunction}');`,
       true,
     );
     // delete binding from every context also
@@ -47,10 +51,10 @@ export default class DomRecorder {
   }
 
   public async setCommandIdForPage(commandId: number) {
-    const command = `window.commandId = ${commandId}`;
+    const command = `window.commandId=${commandId}`;
     await Promise.all(
       this.puppetPage.frames.map(x =>
-        x.evaluate(command, true).catch(() => {
+        x.evaluate(command, true, false).catch(() => {
           // can fail when frames aren't ready. don't worry about it
         }),
       ),
@@ -62,6 +66,8 @@ export default class DomRecorder {
 
     await Promise.all(
       this.puppetPage.frames.map(async frame => {
+        // don't wait for env to be available
+        if (!frame.canEvaluate(true)) return;
         try {
           const results = await frame.evaluate<PageRecorderResultSet>(
             `window.flushPageRecorder()`,

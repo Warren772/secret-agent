@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 import * as EventUtils from '@secret-agent/commons/eventUtils';
-import Log from '@secret-agent/commons/Logger';
 import { addEventListeners, TypedEventEmitter } from '@secret-agent/commons/eventUtils';
+import Log from '@secret-agent/commons/Logger';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
 import IConnectionTransport, {
   IConnectionTransportEvents,
-} from '../interfaces/IConnectionTransport';
+} from '@secret-agent/puppet-interfaces/IConnectionTransport';
 
 const { log } = Log(module);
 
-export class PipeTransport extends TypedEventEmitter<IConnectionTransportEvents>
+export class PipeTransport
+  extends TypedEventEmitter<IConnectionTransportEvents>
   implements IConnectionTransport {
   pipeWrite: NodeJS.WritableStream;
   pendingMessage: string;
-  eventListeners: EventUtils.IRegisteredEventListener[];
+  eventListeners: IRegisteredEventListener[];
 
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
     super();
@@ -42,6 +44,7 @@ export class PipeTransport extends TypedEventEmitter<IConnectionTransportEvents>
         log.error('PipeTransport.WriteError', { error, sessionId: null }),
       ),
     );
+    this.emit = this.emit.bind(this);
   }
 
   send(message: string) {
@@ -55,7 +58,7 @@ export class PipeTransport extends TypedEventEmitter<IConnectionTransportEvents>
   }
 
   private onReadClosed() {
-    log.info('PipeTransport.Closed');
+    log.stats('PipeTransport.Closed');
     this.emit('close');
   }
 
@@ -66,15 +69,19 @@ export class PipeTransport extends TypedEventEmitter<IConnectionTransportEvents>
       return;
     }
     const message = this.pendingMessage + buffer.toString(undefined, 0, end);
-    this.emit('message', message);
+    this.emitMessage(message);
 
     let start = end + 1;
     end = buffer.indexOf('\0', start);
     while (end !== -1) {
-      this.emit('message', buffer.toString(undefined, start, end));
+      this.emitMessage(buffer.toString(undefined, start, end));
       start = end + 1;
       end = buffer.indexOf('\0', start);
     }
     this.pendingMessage = buffer.toString(undefined, start);
+  }
+
+  private emitMessage(message: string): void {
+    setImmediate(this.emit, 'message', message);
   }
 }

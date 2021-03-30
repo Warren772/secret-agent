@@ -12,7 +12,7 @@ const defaults = {
   contributors: rootPackageJson.contributors,
   homepage: rootPackageJson.homepage,
   engines: {
-    node: '>=12.0.0',
+    node: '>=13.2.0',
   },
   publishConfig: {
     access: 'public',
@@ -42,11 +42,13 @@ function processPackageJson(packagePath) {
     description: overridesJson.description || packageJson.description,
     main: overridesJson.main || packageJson.main,
     types: overridesJson.types || packageJson.types,
+    exports: overridesJson.exports || packageJson.exports,
     files: overridesJson.files || packageJson.files,
     ...defaults,
     scripts: overridesJson.scripts,
     dependencies: overridesJson.dependencies || packageJson.dependencies,
     engine: packageJson.engine, // this is used by emulators
+    bin: packageJson.bin,
   };
 
   // check if index exists
@@ -68,14 +70,14 @@ function processPackageJson(packagePath) {
 }
 
 function processDir(path) {
-  for (const dirname of fs.readdirSync(path)) {
-    if (dirname === 'node_modules' || dirname.startsWith('.')) continue;
-    const fullpath = `${path}/${dirname}`;
-    if (fs.existsSync(`${fullpath}/package.json`)) {
-      processPackageJson(fullpath);
-    }
+  for (const fileOrDir of fs.readdirSync(path)) {
+    if (fileOrDir === 'node_modules' || fileOrDir.startsWith('.')) continue;
+
+    const fullpath = `${path}/${fileOrDir}`;
     if (fs.lstatSync(fullpath).isDirectory()) {
       processDir(fullpath);
+    } else if (fileOrDir === 'package.json') {
+      processPackageJson(path);
     }
   }
 }

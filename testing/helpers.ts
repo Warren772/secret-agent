@@ -1,19 +1,25 @@
 import * as Fs from 'fs';
 import * as Path from 'path';
-import Url, { URL } from 'url';
-import querystring from 'querystring';
-import http, { IncomingMessage, RequestListener, Server } from 'http';
-import https from 'https';
+import * as Url from 'url';
+import { URL } from 'url';
+import * as querystring from 'querystring';
+import * as http from 'http';
+import { IncomingMessage, RequestListener, Server } from 'http';
+import * as https from 'https';
+import { Agent } from 'https';
 import { createPromise } from '@secret-agent/commons/utils';
-import HttpProxyAgent from 'http-proxy-agent';
-import HttpsProxyAgent from 'https-proxy-agent';
-import Koa from 'koa';
-import KoaRouter from '@koa/router';
+import * as HttpProxyAgent from 'http-proxy-agent';
+import * as HttpsProxyAgent from 'https-proxy-agent';
+import * as Koa from 'koa';
+import * as KoaRouter from '@koa/router';
 import * as net from 'net';
 import * as http2 from 'http2';
 import * as stream from 'stream';
-import Core from '@secret-agent/core';
-import { CanceledPromiseError } from "@secret-agent/commons/interfaces/IPendingWaitEvent";
+import Core, { CoreProcess } from '@secret-agent/core';
+import { CanceledPromiseError } from '@secret-agent/commons/interfaces/IPendingWaitEvent';
+import MitmSocket from '@secret-agent/mitm-socket';
+
+import { Helpers } from './index';
 
 export const needsClosing: { close: () => Promise<any> | void; onlyCloseOnFinal?: boolean }[] = [];
 
@@ -26,7 +32,7 @@ export interface ITestKoaServer extends KoaRouter {
   baseHost: string;
   baseUrl: string;
 }
-export interface ITestHttpServer {
+export interface ITestHttpServer<T> {
   isClosing: boolean;
   onlyCloseOnFinal: boolean;
   url: string;
@@ -34,7 +40,7 @@ export interface ITestHttpServer {
   baseUrl: string;
   close: () => Promise<any>;
   on: (eventName: string, fn: (...args: any[]) => void) => any;
-  server: http.Server | https.Server;
+  server: T;
 }
 
 export async function runKoaServer(onlyCloseOnFinal = true): Promise<ITestKoaServer> {
@@ -51,6 +57,9 @@ export async function runKoaServer(onlyCloseOnFinal = true): Promise<ITestKoaSer
       })
       .unref();
   });
+
+  const destroyer = destroyServerFn(server);
+
   const port = (server.address() as net.AddressInfo).port;
   router.baseHost = `localhost:${port}`;
   router.baseUrl = `http://${router.baseHost}`;
@@ -64,11 +73,7 @@ export async function runKoaServer(onlyCloseOnFinal = true): Promise<ITestKoaSer
       return;
     }
     router.isClosing = true;
-    return new Promise(resolve => {
-      server.close(() => {
-        setTimeout(resolve, 10);
-      });
-    });
+    return destroyer();
   };
   router.onlyCloseOnFinal = onlyCloseOnFinal;
   needsClosing.push(router);
@@ -85,32 +90,32 @@ export function sslCerts() {
   };
 }
 
-export async function runHttpsServer(handler: RequestListener, onlyCloseOnFinal = false) {
+export async function runHttpsServer(
+  handler: RequestListener,
+  onlyCloseOnFinal = false,
+): Promise<ITestHttpServer<https.Server>> {
   const options = {
     ...sslCerts(),
   };
 
-  const server = https
-    .createServer(options, handler)
-    .listen(0)
-    .unref();
+  const server = https.createServer(options, handler).listen(0).unref();
   await new Promise(resolve => server.once('listening', resolve));
+
+  const destroyServer = destroyServerFn(server);
 
   const port = (server.address() as net.AddressInfo).port;
   const baseUrl = `https://localhost:${port}`;
-  const httpServer: ITestHttpServer = {
+  const httpServer: ITestHttpServer<https.Server> = {
     isClosing: false,
     on(eventName, fn) {
       server.on(eventName, fn);
     },
-    async close() {
+    close(): Promise<void> {
       if (httpServer.isClosing) {
         return null;
       }
       httpServer.isClosing = true;
-      return new Promise(resolve => {
-        server.close(() => setTimeout(resolve, 10));
-      });
+      return destroyServer();
     },
     onlyCloseOnFinal,
     baseUrl,
@@ -131,9 +136,10 @@ export async function runHttpServer(
     addToResponse?: (response: http.ServerResponse) => void;
     onlyCloseOnFinal?: boolean;
   } = {},
-) {
+): Promise<ITestHttpServer<http.Server>> {
   const { onRequest, onPost, addToResponse } = params;
   const server = http.createServer().unref();
+  const destroyServer = destroyServerFn(server);
   server.on('request', async (request, response) => {
     if (onRequest) onRequest(request.url, request.method, request.headers);
     if (addToResponse) addToResponse(response);
@@ -163,7 +169,7 @@ export async function runHttpServer(
       for await (const chunk of request) {
         body += chunk;
       }
-      // eslint-disable-next-line no-shadow
+      // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
       const params = querystring.parse(body);
       pageBody = params.thisText as string;
       if (onPost) onPost(params.thisText as string);
@@ -175,20 +181,18 @@ export async function runHttpServer(
   const port = (server.address() as net.AddressInfo).port;
 
   const baseUrl = `http://localhost:${port}`;
-  const httpServer: ITestHttpServer = {
+  const httpServer: ITestHttpServer<http.Server> = {
     isClosing: false,
     onlyCloseOnFinal: params.onlyCloseOnFinal ?? false,
     on(eventName, fn) {
       server.on(eventName, fn);
     },
-    async close() {
+    close() {
       if (httpServer.isClosing) {
         return null;
       }
       httpServer.isClosing = true;
-      return new Promise(resolve => {
-        server.close(() => setTimeout(resolve, 10));
-      });
+      return destroyServer();
     },
     baseUrl,
     url: `${baseUrl}/`,
@@ -209,7 +213,7 @@ export function httpRequest(
   headers: { [name: string]: string } = {},
   response?: (res: IncomingMessage) => any,
   postData?: Buffer,
-) {
+): Promise<string> {
   const createdPromise = createPromise();
   const { promise, resolve, reject } = createdPromise;
   const url = new URL(urlStr);
@@ -229,7 +233,7 @@ export function httpRequest(
   }
 
   const client = url.protocol === 'https:' ? https : http;
-  const req = client.request(options, async res => {
+  const req = client.request(options, (res): void => {
     if (createdPromise.isResolved) return;
     let data = '';
     if (response) response(res);
@@ -243,7 +247,7 @@ export function httpRequest(
   return promise;
 }
 
-export function getProxyAgent(url: URL, proxyHost: string, auth?: string) {
+export function getProxyAgent(url: URL, proxyHost: string, auth?: string): Agent {
   const ProxyAgent = url.protocol === 'https:' ? HttpsProxyAgent : HttpProxyAgent;
   const opts = Url.parse(proxyHost);
   opts.auth = auth;
@@ -261,7 +265,7 @@ export function httpGet(
 
 export async function runHttp2Server(
   handler: (request: http2.Http2ServerRequest, response: http2.Http2ServerResponse) => void,
-) {
+): Promise<ITestHttpServer<http2.Http2SecureServer>> {
   const h2ServerStarted = createPromise();
   const sessions = new Set<http2.ServerHttp2Session>();
   const server = http2
@@ -277,12 +281,13 @@ export async function runHttp2Server(
   const port = (server.address() as net.AddressInfo).port;
 
   const baseUrl = `https://localhost:${port}`;
-  const httpServer = {
+  const httpServer: ITestHttpServer<http2.Http2SecureServer> = {
     isClosing: false,
+    onlyCloseOnFinal: false,
     on(eventName, fn) {
       server.on(eventName, fn);
     },
-    async close() {
+    close() {
       if (httpServer.isClosing) {
         return null;
       }
@@ -304,11 +309,64 @@ export async function runHttp2Server(
   return httpServer;
 }
 
-export function getLogo() {
+export function httpGetWithSocket(
+  url: string,
+  clientOptions: https.RequestOptions,
+  socket: net.Socket,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    let isResolved = false;
+    socket.once('close', err => {
+      if (isResolved) return;
+      reject(err);
+    });
+    socket.once('error', err => {
+      if (isResolved) return;
+      reject(err);
+    });
+    const request = https.get(
+      url,
+      {
+        ...clientOptions,
+        agent: null,
+        createConnection: () => socket,
+      },
+      async res => {
+        isResolved = true;
+        const buffer = await readableToBuffer(res);
+        resolve(buffer.toString('utf8'));
+      },
+    );
+    request.on('error', err => {
+      if (isResolved) return;
+      reject(err);
+    });
+  });
+}
+
+let sessionId = 0;
+
+export function getTlsConnection(
+  serverPort: number,
+  host = 'localhost',
+  clientHello = 'Chrome83',
+): MitmSocket {
+  const tlsConnection = new MitmSocket(`session${(sessionId += 1)}`, {
+    host,
+    port: String(serverPort),
+    clientHelloId: clientHello,
+    servername: host,
+    rejectUnauthorized: false,
+  });
+  Helpers.onClose(() => tlsConnection.close());
+  return tlsConnection;
+}
+
+export function getLogo(): Buffer {
   return Fs.readFileSync(`${__dirname}/html/img.png`);
 }
 
-export async function readableToBuffer(res: stream.Readable) {
+export async function readableToBuffer(res: stream.Readable): Promise<Buffer> {
   const buffer: Buffer[] = [];
   for await (const data of res) {
     buffer.push(data);
@@ -322,16 +380,17 @@ export async function http2StreamToJson<T>(http2Stream: http2.Http2Stream): Prom
   return JSON.parse(json);
 }
 
-export async function afterEach() {
+export function afterEach(): Promise<void> {
   return closeAll(false);
 }
 
-export async function afterAll() {
+export async function afterAll(): Promise<void> {
   await closeAll(true);
   await Core.shutdown(true);
+  await CoreProcess.kill();
 }
 
-async function closeAll(isFinal = false) {
+async function closeAll(isFinal = false): Promise<void> {
   const closeList = [...needsClosing];
   needsClosing.length = 0;
 
@@ -358,7 +417,7 @@ async function closeAll(isFinal = false) {
   );
 }
 
-export function onClose(closeFn: () => Promise<any>, onlyCloseOnFinal = false) {
+export function onClose(closeFn: (() => Promise<any>) | (() => any), onlyCloseOnFinal = false) {
   needsClosing.push({ close: closeFn, onlyCloseOnFinal });
 }
 
@@ -366,4 +425,25 @@ function extractPort(url: URL) {
   if (url.port) return url.port;
   if (url.protocol === 'https:') return 443;
   return 80;
+}
+
+function destroyServerFn(
+  server: http.Server | http2.Http2Server | https.Server,
+): () => Promise<void> {
+  const connections = new Set<net.Socket>();
+
+  server.on('connection', conn => {
+    connections.add(conn);
+    conn.on('close', () => connections.delete(conn));
+  });
+
+  return () =>
+    new Promise(resolve => {
+      server.close(() => {
+        setTimeout(resolve, 10);
+      });
+      for (const conn of connections) {
+        conn.destroy();
+      }
+    });
 }

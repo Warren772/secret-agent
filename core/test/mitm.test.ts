@@ -1,12 +1,12 @@
-import GlobalPool from '@secret-agent/core/lib/GlobalPool';
-import { UpstreamProxy } from '@secret-agent/mitm';
 import { Helpers } from '@secret-agent/testing';
 import Chrome83 from '@secret-agent/emulate-chrome-83';
 import MitmRequestContext from '@secret-agent/mitm/lib/MitmRequestContext';
 import { createPromise } from '@secret-agent/commons/utils';
 import { LocationStatus } from '@secret-agent/core-interfaces/Location';
 import { ITestKoaServer } from '@secret-agent/testing/helpers';
-import Core from '../index';
+import Resolvable from '@secret-agent/commons/Resolvable';
+import GlobalPool from '../lib/GlobalPool';
+import Core, { Session } from '../index';
 
 const mocks = {
   MitmRequestContext: {
@@ -17,7 +17,7 @@ const mocks = {
 let koa: ITestKoaServer;
 beforeAll(async () => {
   koa = await Helpers.runKoaServer(true);
-  await GlobalPool.start([Chrome83.emulatorId]);
+  await GlobalPool.start([Chrome83.id]);
 });
 
 beforeEach(async () => {
@@ -26,29 +26,6 @@ beforeEach(async () => {
 
 afterAll(Helpers.afterAll);
 afterEach(Helpers.afterEach);
-
-test('should be able to run multiple pages each with their own upstream proxy', async () => {
-  const acquireUpstreamProxyUrl = jest.spyOn<any, any>(UpstreamProxy.prototype, 'acquireProxyUrl');
-
-  koa.get('/page1', ctx => (ctx.body = 'ok'));
-  koa.get('/page2', ctx => (ctx.body = 'ok'));
-
-  const url1 = `${koa.baseUrl}/page1`;
-  const browserSession1 = await GlobalPool.createSession({});
-  Helpers.needsClosing.push(browserSession1);
-  const tab1 = await browserSession1.createTab();
-  await tab1.goto(url1);
-  await tab1.waitForMillis(100);
-  expect(acquireUpstreamProxyUrl).toHaveBeenLastCalledWith(url1);
-
-  const url2 = `${koa.baseUrl}/page2`;
-  const browserSession2 = await GlobalPool.createSession({});
-  Helpers.needsClosing.push(browserSession2);
-  const tab2 = await browserSession2.createTab();
-  await tab2.goto(url2);
-  await tab2.waitForMillis(100);
-  expect(acquireUpstreamProxyUrl).toHaveBeenLastCalledWith(url2);
-});
 
 test('should send a Host header to secure http1 Chrome requests', async () => {
   let rawHeaders: string[] = [];
@@ -60,7 +37,7 @@ test('should send a Host header to secure http1 Chrome requests', async () => {
 
   const url = `${server.baseUrl}/`;
   const session = await GlobalPool.createSession({
-    emulatorId: 'chrome-83',
+    browserEmulatorId: 'chrome-83',
   });
   Helpers.needsClosing.push(session);
   const tab = await session.createTab();
@@ -100,7 +77,7 @@ const xhr = new XMLHttpRequest();
 xhr.open('POST', '${koa.baseUrl}/preflightPost');
 xhr.setRequestHeader('X-PINGOTHER', 'pingpong');
 xhr.setRequestHeader('Content-Type', 'application/xml');
-xhr.send('<person><name>DLF</name></person>'); 
+xhr.send('<person><name>DLF</name></person>');
 </script>
 </body>
 </html>
@@ -128,11 +105,12 @@ test('should proxy requests from worker threads', async () => {
 onmessage = function(e) {
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '${koa.baseUrl}/xhr');
-  xhr.send('FromWorker'); 
+  xhr.send('FromWorker');
 }`;
   });
   koa.get('/testWorker', ctx => {
     ctx.body = `<html lang="en">
+<h1>This is a visible page</h1>
 <script>
 const myWorker = new Worker("worker.js");
 myWorker.postMessage('send');
@@ -151,8 +129,55 @@ myWorker.postMessage('send');
   Helpers.needsClosing.push(session);
   const tab = await session.createTab();
   await tab.goto(`${koa.baseUrl}/testWorker`);
-  await tab.waitForLoad('AllContentLoaded');
+  await tab.waitForLoad('PaintingStable');
   await expect(serviceXhr).resolves.toBe('FromWorker');
+  expect(mocks.MitmRequestContext.create).toHaveBeenCalledTimes(3);
+});
+
+test('should proxy requests from shared workers', async () => {
+  const xhrResolvable = new Resolvable<string>();
+  const server = await Helpers.runHttpsServer(async (req, res) => {
+    if (req.url === '/shared-worker.js') {
+      res.setHeader('content-type', 'application/javascript');
+      res.end(`
+onconnect = async message => {
+  const port = message.ports[0]
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '${server.baseUrl}/sharedWorkerXhr');
+  xhr.send('FromSharedWorker');
+  port.postMessage('done')
+}`);
+    } else if (req.url === '/testSharedWorker') {
+      res.setHeader('content-type', 'text/html');
+      res.end(`<html lang="en">
+<script>
+try {
+
+const sharedWorker = new SharedWorker('./shared-worker.js');
+sharedWorker.port.start()
+sharedWorker.port.addEventListener('message', message => {
+    sharedWorker.port.close();
+});
+} catch(error ){
+    console.log('couldnt start shared worker', error)
+}
+</script>
+<h1>This is a visible page</h1>
+</html>
+    `);
+    } else if (req.url === '/sharedWorkerXhr') {
+      res.setHeader('content-type', 'text');
+      res.end('ok');
+      const requestBody = await Helpers.readableToBuffer(req);
+      xhrResolvable.resolve(requestBody.toString());
+    }
+  });
+  const session = await GlobalPool.createSession({});
+  Helpers.needsClosing.push(session);
+  const tab = await session.createTab();
+  await tab.goto(`${server.baseUrl}/testSharedWorker`);
+  await tab.waitForLoad('PaintingStable');
+  await expect(xhrResolvable.promise).resolves.toBe('FromSharedWorker');
   expect(mocks.MitmRequestContext.create).toHaveBeenCalledTimes(3);
 });
 
@@ -168,10 +193,10 @@ self.addEventListener('fetch', event => {
   event.respondWith(async function(){
     return fetch(event.request.url, {
       method: event.request.method,
-      credentials: 'include', 
+      credentials: 'include',
       headers: {
         'Intercepted': true,
-        'original-proxy-auth': event.request.headers['proxy-authorization'] 
+        'original-proxy-auth': event.request.headers['proxy-authorization']
       },
       body: event.request.headers['proxy-authorization'] ? 'ProxyAuth' : 'LooksGoodFromPage'
     });
@@ -215,13 +240,13 @@ window.addEventListener('load', function() {
       }
     });
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data === 'start-app') {    
+      if (event.data === 'start-app') {
         fetch('/xhr', {
           method: 'POST',
           body: 'FromPage'
         });
       }
-   });  
+   });
   });
 
 </script>
@@ -249,7 +274,7 @@ window.addEventListener('load', function() {
   Helpers.needsClosing.push(session);
   const tab = await session.createTab();
   await tab.goto(`${server.baseUrl}/service-worker`);
-  await tab.waitForLoad('AllContentLoaded');
+  await tab.waitForLoad('PaintingStable');
   const [originalHeaders, headersFromWorker] = await Promise.all([
     xhrHeaders.promise,
     xhrHeadersFromWorker.promise,
@@ -262,11 +287,13 @@ window.addEventListener('load', function() {
 });
 
 test('should proxy iframe requests', async () => {
-  const meta = await Core.createTab();
-  const core = Core.byTabId[meta.tabId];
+  const connection = Core.addConnection();
+  Helpers.onClose(() => connection.disconnect());
 
-  // @ts-ignore
-  const session = core.session;
+  const meta = await connection.createSession();
+  const tab = Session.getTab(meta);
+
+  const session = tab.session;
 
   session.mitmRequestSession.blockedResources.urls = [
     'https://dataliberationfoundation.org/iframe',
@@ -288,8 +315,8 @@ This is the main body
 </body>
 </html>`;
   });
-  await core.goto(`${koa.baseUrl}/iframe-test`);
-  await core.waitForLoad(LocationStatus.AllContentLoaded);
+  await tab.goto(`${koa.baseUrl}/iframe-test`);
+  await tab.waitForLoad(LocationStatus.PaintingStable);
   expect(mocks.MitmRequestContext.create).toHaveBeenCalledTimes(4);
   const urls = mocks.MitmRequestContext.create.mock.results.map(x => x.value.url.href);
   expect(urls).toEqual([

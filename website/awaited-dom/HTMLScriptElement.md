@@ -6,6 +6,75 @@
 
 ## Properties
 
+### elem.async <div class="specs"><i>W3C</i></div> {#async}
+
+<p>The <code>async</code> and <code>defer</code> attributes are boolean attributes that control how the script should be executed. <strong>The <code>defer</code> and <code>async</code> attributes must not be specified if the <code>src</code> attribute is absent.</strong></p>
+    <p>There are three possible execution modes:</p>
+    <ol>
+     <li>If the <code>async</code> attribute is present, then the script will be executed asynchronously as soon as it downloads.</li>
+     <li>If the <code>async</code> attribute is absent but the <code>defer</code> attribute is present, then the script is executed when the page has finished parsing.</li>
+     <li>If neither attribute is present, then the script is fetched and executed immediately, blocking further parsing of the page.</li>
+    </ol>
+    <p>The <code>defer</code> attribute may be specified with the <code>async</code> attribute, so legacy browsers that only support <code>defer</code> (and not <code>async</code>) fall back to the <code>defer</code> behavior instead of the default blocking behavior.</p>
+    <div class="note"><strong>Note:</strong> The exact processing details for these attributes are complex, involving many different aspects of HTML, and therefore are scattered throughout the specification. <a class="external" href="http://www.w3.org/html/wg/drafts/html/master/scripting-1.html#prepare-a-script" rel="noopener">These algorithms</a> describe the core ideas, but they rely on the parsing rules for <code>&lt;script&gt;</code>&nbsp;<a class="external" href="http://www.w3.org/html/wg/drafts/html/master/syntax.html#scriptTag" rel="noopener">start</a> and <a class="external" href="http://www.w3.org/html/wg/drafts/html/master/syntax.html#scriptEndTag" rel="noopener">end</a> tags in HTML, <a class="external" href="http://www.w3.org/html/wg/drafts/html/master/syntax.html#scriptForeignEndTag" rel="noopener">in foreign content</a>, and <a class="external" href="http://www.w3.org/html/wg/drafts/html/master/the-xhtml-syntax.html#scriptTagXML" rel="noopener">in XML</a>; the rules for the <code>document.write()</code> method; the handling of <a class="external" href="http://www.w3.org/html/wg/drafts/html/master/webappapis.html#scripting" rel="noopener">scripting</a>; and so on.</div>
+
+#### **Type**: `Promise<boolean>`
+
+### elem.charset <div class="specs"><i>W3C</i></div> {#charset}
+
+Represents the character encoding of an external script. It reflects the <code>charset</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.crossOrigin <div class="specs"><i>W3C</i></div> {#crossOrigin}
+
+A `string` reflecting the CORS setting for the script element. For scripts from other origins, this controls if error information will be exposed.
+
+#### **Type**: `Promise<string>`
+
+### elem.defer <div class="specs"><i>W3C</i></div> {#defer}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.event <div class="specs"><i>W3C</i></div> {#event}
+
+An old, quirky way of registering event handlers on elements in an HTML document.
+
+#### **Type**: `Promise<string>`
+
+### elem.noModule <div class="specs"><i>W3C</i></div> {#noModule}
+
+This Boolean property stops the script's execution in browsers that support<a class="external" href="https://hacks.mozilla.org/2015/08/es6-in-depth-modules/" rel="noopener"> ES2015 modules</a> — used to run fallback scripts in older browsers that do <em>not</em> support JavaScript modules.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.referrerPolicy <div class="specs"><i>W3C</i></div> {#referrerPolicy}
+
+A `string` that reflects the <code>referrerpolicy</code> HTML attribute indicating which referrer to use when fetching the script, and fetches done by that script.
+
+#### **Type**: `Promise<string>`
+
+### elem.src <div class="specs"><i>W3C</i></div> {#src}
+
+Gets and sets the URL of an external script. It reflects the <code>src</code> attribute.
+
+#### **Type**: `Promise<string>`
+
+### elem.text <div class="specs"><i>W3C</i></div> {#text}
+
+<p>The IDL attribute <code>text</code> joins and returns the contents of all <code>Text</code> nodes inside the <code>&lt;script&gt;</code> element (ignoring other nodes like comments) in tree order. On setting, it acts the same way as the <code>textContent</code> IDL attribute.</p>
+    <div class="note"><strong>Note:</strong> When inserted using the <code>document.write()</code> method, <code>&lt;script&gt;</code> elements execute (typically synchronously), but when inserted using <code>innerHTML</code> or <code>outerHTML</code>, they do not execute at all.</div>
+
+#### **Type**: `Promise<string>`
+
+### elem.type <div class="specs"><i>W3C</i></div> {#type}
+
+Represents the MIME type of the script. It reflects the <code>type</code> attribute.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -106,13 +175,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -182,7 +251,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -218,7 +287,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -379,6 +448,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -414,6 +519,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -773,57 +884,48 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `async` | `charset`
-`crossOrigin` | `defer`
-`event` | `noModule`
-`referrerPolicy` | `src`
-`text` | `type`
-`onfullscreenchange` | `onfullscreenerror`
+ | `onfullscreenchange` | `onfullscreenerror`
 `oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
-`onabort` | `onanimationend`
-`onanimationiteration` | `onanimationstart`
-`onauxclick` | `onblur`
-`oncancel` | `oncanplay`
-`oncanplaythrough` | `onchange`
-`onclick` | `onclose`
-`oncontextmenu` | `oncuechange`
-`ondblclick` | `ondrag`
-`ondragend` | `ondragenter`
-`ondragleave` | `ondragover`
-`ondragstart` | `ondrop`
-`ondurationchange` | `onemptied`
-`onended` | `onerror`
-`onfocus` | `onformdata`
-`ongotpointercapture` | `oninput`
-`oninvalid` | `onkeydown`
-`onkeypress` | `onkeyup`
-`onload` | `onloadeddata`
-`onloadedmetadata` | `onloadstart`
-`onlostpointercapture` | `onmousedown`
-`onmouseenter` | `onmouseleave`
-`onmousemove` | `onmouseout`
-`onmouseover` | `onmouseup`
-`onpause` | `onplay`
-`onplaying` | `onpointercancel`
-`onpointerdown` | `onpointerenter`
-`onpointerleave` | `onpointermove`
-`onpointerout` | `onpointerover`
-`onpointerup` | `onprogress`
-`onratechange` | `onreset`
-`onresize` | `onscroll`
-`onseeked` | `onseeking`
-`onselect` | `onselectionchange`
-`onselectstart` | `onstalled`
-`onsubmit` | `onsuspend`
-`ontimeupdate` | `ontouchcancel`
-`ontouchend` | `ontouchmove`
-`ontouchstart` | `ontransitionend`
-`onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onpaste` | `onabort`
+`onanimationend` | `onanimationiteration`
+`onanimationstart` | `onauxclick`
+`onblur` | `oncancel`
+`oncanplay` | `oncanplaythrough`
+`onchange` | `onclick`
+`onclose` | `oncontextmenu`
+`oncuechange` | `ondblclick`
+`ondrag` | `ondragend`
+`ondragenter` | `ondragleave`
+`ondragover` | `ondragstart`
+`ondrop` | `ondurationchange`
+`onemptied` | `onended`
+`onerror` | `onfocus`
+`onformdata` | `ongotpointercapture`
+`oninput` | `oninvalid`
+`onkeydown` | `onkeypress`
+`onkeyup` | `onload`
+`onloadeddata` | `onloadedmetadata`
+`onloadstart` | `onlostpointercapture`
+`onmousedown` | `onmouseenter`
+`onmouseleave` | `onmousemove`
+`onmouseout` | `onmouseover`
+`onmouseup` | `onpause`
+`onplay` | `onplaying`
+`onpointercancel` | `onpointerdown`
+`onpointerenter` | `onpointerleave`
+`onpointermove` | `onpointerout`
+`onpointerover` | `onpointerup`
+`onprogress` | `onratechange`
+`onreset` | `onresize`
+`onscroll` | `onseeked`
+`onseeking` | `onselect`
+`onselectionchange` | `onselectstart`
+`onstalled` | `onsubmit`
+`onsuspend` | `ontimeupdate`
+`ontouchcancel` | `ontouchend`
+`ontouchmove` | `ontouchstart`
+`ontransitionend` | `onvolumechange`
+`onwaiting` | `onwheel` | 
 
 #### Methods
 

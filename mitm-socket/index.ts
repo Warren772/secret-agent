@@ -1,34 +1,54 @@
+// eslint-disable-next-line max-classes-per-file
 import { ChildProcess, spawn } from 'child_process';
 import * as net from 'net';
 import { promises as fs, unlink } from 'fs';
-import Log, { IBoundLog } from '@secret-agent/commons/Logger';
-import { EventEmitter } from 'events';
-import { createPromise } from '@secret-agent/commons/utils';
 import * as os from 'os';
 import { v1 as uuid } from 'uuid';
+import Log from '@secret-agent/commons/Logger';
+import { createPromise } from '@secret-agent/commons/utils';
+import { TypedEventEmitter } from '@secret-agent/commons/eventUtils';
 
 const { log } = Log(module);
 
 const ext = os.platform() === 'win32' ? '.exe' : '';
 const libPath = `${__dirname}/dist/connect${ext}`;
 
-export default class MitmSocket {
+let idCounter = 0;
+
+export default class MitmSocket extends TypedEventEmitter<{
+  connect: void;
+  dial: void;
+  close: void;
+}> {
   public readonly socketPath: string;
   public alpn = 'http/1.1';
   public socket: net.Socket;
   public remoteAddress: string;
   public localAddress: string;
+  public serverName: string;
+
+  public id = (idCounter += 1);
+
+  public spawnTime: Date;
+  public dialTime: Date;
+  public connectTime: Date;
+  public closeTime: Date;
+
+  public get pid(): number | undefined {
+    return this.child?.pid;
+  }
 
   private isClosing = false;
   private isConnected = false;
   private child: ChildProcess;
-  private emitter = new EventEmitter();
   private connectError?: string;
-
-  private readonly logger: IBoundLog;
+  private readonly callStack: string;
 
   constructor(readonly sessionId: string, readonly connectOpts: IGoTlsSocketConnectOpts) {
+    super();
     const id = uuid();
+    this.callStack = new Error().stack.replace('Error:', '').trim();
+    this.serverName = connectOpts.servername;
     this.socketPath =
       os.platform() === 'win32' ? `\\\\.\\pipe\\sa-${id}` : `${os.tmpdir()}/sa-${id}.sock`;
     this.logger = log.createChild(module, { sessionId });
@@ -36,44 +56,38 @@ export default class MitmSocket {
     if (connectOpts.isSsl === undefined) connectOpts.isSsl = true;
   }
 
-  public isReusable() {
+  public isReusable(): boolean {
     if (!this.socket || this.isClosing || !this.isConnected) return false;
     return this.socket.writable && !this.socket.destroyed;
   }
 
-  public setProxy(url: string, auth?: string) {
+  public setProxyUrl(url: string): void {
     this.connectOpts.proxyUrl = url;
-    if (auth) {
-      this.connectOpts.proxyAuthBase64 = Buffer.from(auth).toString('base64');
-    }
   }
 
-  public setTcpSettings(tcpVars: { windowSize: number; ttl: number }) {
+  public setTcpSettings(tcpVars: { windowSize: number; ttl: number }): void {
     this.connectOpts.tcpTtl = tcpVars.ttl;
     this.connectOpts.tcpWindowSize = tcpVars.windowSize;
   }
 
-  public on(event: 'close', listener: (socket: net.Socket) => any) {
-    this.emitter.on(event, listener);
-  }
-
-  public isHttp2() {
+  public isHttp2(): boolean {
     return this.alpn === 'h2';
   }
 
-  public close() {
+  public close(): void {
     if (this.isClosing) return;
+    this.closeTime = new Date();
     this.isClosing = true;
-    this.emitter.emit('close');
+    this.emit('close');
     this.cleanupSocket();
     this.closeChild();
   }
 
-  public onListening() {
+  public onListening(): void {
     const socket = net.connect(this.socketPath);
     this.socket = socket;
     socket.on('error', error => {
-      this.logger.error('SocketConnectDriver.SocketError', {
+      this.logger.warn('SocketConnectDriver.SocketError', {
         sessionId: this.sessionId,
         error,
         socketPath: this.socketPath,
@@ -87,18 +101,30 @@ export default class MitmSocket {
     socket.on('close', this.onSocketClose.bind(this, 'close'));
   }
 
-  public async connect() {
+  public async connect(connectTimeoutMillis = 30e3): Promise<void> {
     await this.cleanSocketPathIfNeeded();
     const child = spawn(libPath, [this.socketPath, JSON.stringify(this.connectOpts)], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
     });
+    this.spawnTime = new Date();
     this.child = child;
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
 
-    const promise = createPromise(30e3);
+    const promise = createPromise(
+      connectTimeoutMillis,
+      `Timeout connecting to ${this.serverName ?? 'host'} at ${this.connectOpts.host}:${
+        this.connectOpts.port
+      }`,
+    );
     child.on('exit', () => {
-      promise.reject(this.connectError ?? new Error(`Socket process exited during connect`));
+      promise.reject(
+        buildConnectError(
+          this.connectError ?? `Socket process exited during connect`,
+          this.callStack,
+        ),
+      );
       this.cleanupSocket();
     });
 
@@ -119,11 +145,17 @@ export default class MitmSocket {
       }
     });
     // if error logs during connect window, we got a connect error
-    child.stderr.on('data', this.onChildProcessStderr.bind(this));
+    child.stderr.on('data', message => {
+      this.onChildProcessStderr(message);
+      if (!this.isConnected && this.connectError) {
+        promise.reject(buildConnectError(this.connectError, this.callStack));
+        this.close();
+      }
+    });
     await promise.promise;
   }
 
-  private async cleanSocketPathIfNeeded() {
+  private async cleanSocketPathIfNeeded(): Promise<void> {
     try {
       await fs.unlink(this.socketPath);
     } catch (err) {
@@ -131,7 +163,7 @@ export default class MitmSocket {
     }
   }
 
-  private closeChild() {
+  private closeChild(): void {
     if (!this.child || this.child.killed) return;
     try {
       // fix for node 13 throwing errors on closed sockets
@@ -150,35 +182,41 @@ export default class MitmSocket {
     this.child.unref();
   }
 
-  private cleanupSocket() {
+  private cleanupSocket(): void {
     if (!this.socket) return;
-    if (this.connectError) this.socket.destroy(new Error(this.connectError));
+    if (this.connectError)
+      this.socket.destroy(buildConnectError(this.connectError, this.callStack));
     this.socket.end();
+    this.socket.unref();
     this.isConnected = false;
     unlink(this.socketPath, () => null);
     delete this.socket;
   }
 
-  private onSocketClose() {
+  private onSocketClose(): void {
     this.close();
   }
 
-  private onChildProcessMessage(messages: string) {
+  private onChildProcessMessage(messages: string): void {
     for (const message of messages.split(/\r?\n/)) {
       if (message.startsWith('[DomainSocketPiper.Dialed]')) {
+        this.dialTime = new Date();
         const matches = message.match(/Remote: (.+), Local: (.+)/);
         if (matches?.length) {
           this.remoteAddress = matches[1];
           this.localAddress = matches[2];
         }
+        this.emit('dial');
       } else if (message === '[DomainSocketPiper.ReadyForConnect]') {
         this.onListening();
       } else if (message.startsWith('[DomainSocketPiper.Connected]')) {
         this.isConnected = true;
+        this.connectTime = new Date();
         const matches = message.match(/ALPN: (.+)/);
         if (matches?.length) {
           this.alpn = matches[1];
         }
+        this.emit('connect');
         this.logger.stats('SocketHandler.Connected', {
           alpn: this.alpn,
           host: this.connectOpts?.host,
@@ -194,15 +232,23 @@ export default class MitmSocket {
     }
   }
 
-  private onChildProcessStderr(message: string) {
+  private onChildProcessStderr(message: string): void {
     if (
       message.includes('panic: runtime error:') ||
       message.includes('tlsConn.Handshake error') ||
       message.includes('connection refused') ||
-      message.includes('no such host')
+      message.includes('no such host') ||
+      message.includes('Dial (proxy/remote)') ||
+      message.includes('PROXY_ERR')
     ) {
       this.connectError = message.trim();
-      this.close();
+      if (this.connectError.includes('Error:')) {
+        this.connectError = this.connectError.split('Error:').pop().trim();
+      }
+
+      if (this.isConnected) {
+        this.close();
+      }
     } else if (message.includes('DomainSocket -> EOF') && !this.connectOpts.keepAlive) {
       this.close();
     } else {
@@ -219,9 +265,28 @@ export interface IGoTlsSocketConnectOpts {
   servername: string;
   rejectUnauthorized?: boolean;
   proxyUrl?: string;
-  proxyAuthBase64?: string;
+  proxyAuth?: string;
   tcpTtl?: number;
   tcpWindowSize?: number;
   debug?: boolean;
   keepAlive?: boolean;
+}
+
+class Socks5ProxyConnectError extends Error {}
+class HttpProxyConnectError extends Error {}
+class SocketConnectError extends Error {}
+
+function buildConnectError(connectError = 'Error connecting to host', callStack: string): Error {
+  let error: Error;
+  if (connectError.includes('SOCKS5_PROXY_ERR')) {
+    error = new Socks5ProxyConnectError(connectError.replace('SOCKS5_PROXY_ERR', '').trim());
+  } else if (connectError.includes('HTTP_PROXY_ERR')) {
+    error = new HttpProxyConnectError(connectError.replace('HTTP_PROXY_ERR', '').trim());
+  } else {
+    error = new SocketConnectError(connectError.trim());
+  }
+
+  error.stack += `\n${'------DIAL'.padEnd(50, '-')}\n    `;
+  error.stack += callStack;
+  return error;
 }

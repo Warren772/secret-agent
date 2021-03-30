@@ -1,12 +1,13 @@
 import initializeConstantsAndProperties from 'awaited-dom/base/initializeConstantsAndProperties';
 import StateMachine from 'awaited-dom/base/StateMachine';
 import ISetCookieOptions from '@secret-agent/core-interfaces/ISetCookieOptions';
-import CoreTab from './CoreTab';
+import { ICookie } from '@secret-agent/core-interfaces/ICookie';
+import CoreFrameEnvironment from './CoreFrameEnvironment';
 
 const { getState, setState } = StateMachine<CookieStorage, IState>();
 
 interface IState {
-  coreTab: Promise<CoreTab>;
+  coreFrame: Promise<CoreFrameEnvironment>;
 }
 
 export default class CookieStorage {
@@ -14,46 +15,50 @@ export default class CookieStorage {
     initializeConstantsAndProperties(this, [], []);
   }
 
-  public get length() {
+  public get length(): Promise<number> {
     return this.getItems().then(x => x.length);
   }
 
-  public async getItems() {
-    const coreTab = await getState(this).coreTab;
-    return await coreTab.getCookies();
+  public async getItems(): Promise<ICookie[]> {
+    const coreFrame = await getCoreFrame(this);
+    return await coreFrame.getCookies();
   }
 
-  public async key(index: number) {
+  public async key(index: number): Promise<string> {
     const cookies = await this.getItems();
     return Object.keys(cookies)[index];
   }
 
-  public async clear() {
-    const coreTab = await getState(this).coreTab;
+  public async clear(): Promise<void> {
+    const coreFrame = await getCoreFrame(this);
     const cookies = await this.getItems();
     for (const cookie of cookies) {
-      await coreTab.removeCookie(cookie.name);
+      await coreFrame.removeCookie(cookie.name);
     }
   }
 
-  public async getItem(key: string) {
+  public async getItem(key: string): Promise<ICookie> {
     const cookies = await this.getItems();
     return cookies.find(x => x.name === key);
   }
 
-  public async setItem(key: string, value: string, options?: ISetCookieOptions) {
-    const coreTab = await getState(this).coreTab;
-    return coreTab.setCookie(key, value, options);
+  public async setItem(key: string, value: string, options?: ISetCookieOptions): Promise<boolean> {
+    const coreFrame = await getCoreFrame(this);
+    return coreFrame.setCookie(key, value, options);
   }
 
-  public async removeItem(name: string) {
-    const coreTab = await getState(this).coreTab;
-    return coreTab.removeCookie(name);
+  public async removeItem(name: string): Promise<boolean> {
+    const coreFrame = await getCoreFrame(this);
+    return coreFrame.removeCookie(name);
   }
 }
 
-export function createCookieStorage(coreTab: Promise<CoreTab>) {
+function getCoreFrame(cookieStorage: CookieStorage): Promise<CoreFrameEnvironment> {
+  return getState(cookieStorage).coreFrame;
+}
+
+export function createCookieStorage(coreFrame: Promise<CoreFrameEnvironment>): CookieStorage {
   const cookieStorage = new CookieStorage();
-  setState(cookieStorage, { coreTab });
+  setState(cookieStorage, { coreFrame });
   return cookieStorage;
 }

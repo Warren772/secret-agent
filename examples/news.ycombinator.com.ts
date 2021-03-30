@@ -1,11 +1,11 @@
-import SecretAgent from '@secret-agent/full-client';
+import agent from 'secret-agent';
 
-process.env.SA_SHOW_REPLAY = 'true';
+// process.env.SHOW_BROWSER = 'true';
 
 async function run() {
-  const agent = await new SecretAgent();
+  await agent.configure({ browserEmulatorId: 'chrome-80' });
   await agent.goto('https://news.ycombinator.com/');
-  await agent.waitForAllContentLoaded();
+  await agent.waitForPaintingStable();
 
   console.log('\n-- PRINTING location.href ---------');
   console.log(await agent.url);
@@ -82,7 +82,7 @@ async function run() {
   console.log('-------------------------------------');
   console.log('DONE');
 
-  await SecretAgent.shutdown();
+  await agent.close();
 }
 
 run().catch(error => console.log(error));

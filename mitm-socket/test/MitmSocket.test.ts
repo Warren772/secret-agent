@@ -1,12 +1,11 @@
 import { Helpers } from '@secret-agent/testing';
-import * as https from 'https';
-import * as net from 'net';
 import { createPromise } from '@secret-agent/commons/utils';
-import http2 from 'http2';
+import * as http2 from 'http2';
 import * as stream from 'stream';
-import Proxy from 'proxy';
-import * as http from 'http';
-import WebSocket from 'ws';
+import * as WebSocket from 'ws';
+import { getTlsConnection, httpGetWithSocket } from '@secret-agent/testing/helpers';
+import * as https from 'https';
+import { IncomingMessage } from 'http';
 import MitmSocket from '../index';
 
 afterAll(Helpers.afterAll);
@@ -36,14 +35,14 @@ test('should handle http2 requests', async () => {
   const client = http2.connect('https://secretagent.dev', {
     createConnection: () => tlsConnection.socket,
   });
-  Helpers.onClose(() => new Promise(resolve => client.close(resolve)));
+  closeAfterTest(client);
 
   const request = client.request({ ':path': '/' });
   const httpResponse = await readResponse(request);
   expect(httpResponse).toBe('I am h2');
 });
 
-test('should be able to hit google using a Chrome79 Emulator', async () => {
+test('should be able to hit google using a Chrome Emulator', async () => {
   const tlsConnection = new MitmSocket('1', {
     host: 'google.com',
     port: '443',
@@ -58,7 +57,7 @@ test('should be able to hit google using a Chrome79 Emulator', async () => {
   const client = http2.connect('https://www.google.com', {
     createConnection: () => tlsConnection.socket,
   });
-  Helpers.onClose(() => new Promise(resolve => client.close(resolve)));
+  closeAfterTest(client);
 
   const request = client.request({ ':path': '/' });
   const httpResponse = await readResponse(request);
@@ -66,13 +65,12 @@ test('should be able to hit google using a Chrome79 Emulator', async () => {
   expect(httpResponse).toMatch(/<\/body><\/html>$/);
 });
 
-test('should be able to hit optimove using a Chrome79 Emulator', async () => {
-  const tlsConnection = new MitmSocket('2', {
+test('should be able to hit gstatic using a Chrome Emulator', async () => {
+  const tlsConnection = new MitmSocket('optimove', {
     host: 'www.gstatic.com',
     port: '443',
     servername: 'www.gstatic.com',
     clientHelloId: 'Chrome72',
-    debug: true,
   });
   Helpers.onClose(async () => tlsConnection.close());
 
@@ -82,7 +80,7 @@ test('should be able to hit optimove using a Chrome79 Emulator', async () => {
   const client = http2.connect('https://www.gstatic.com', {
     createConnection: () => tlsConnection.socket,
   });
-  Helpers.onClose(() => new Promise(resolve => client.close(resolve)));
+  closeAfterTest(client);
 
   const request = client.request({
     ':path': '/firebasejs/4.9.1/firebase.js',
@@ -91,9 +89,47 @@ test('should be able to hit optimove using a Chrome79 Emulator', async () => {
   expect(httpResponse).toBeTruthy();
 });
 
+test('should be able to hit a server that disconnects', async () => {
+  const server = await Helpers.runHttpsServer(async (req, res) => {
+    res.socket.end(
+      `HTTP/1.1 301 Moved Permanently\r\nContent-Length: 0\r\nConnection: close\r\nLocation: https://www.location2.com\r\n\r\n`,
+    );
+  });
+
+  const tlsConnection = new MitmSocket('disconnect', {
+    host: `localhost`,
+    port: String(server.port),
+    servername: 'localhost',
+    clientHelloId: 'Chrome72',
+    keepAlive: true,
+  });
+  Helpers.onClose(async () => tlsConnection.close());
+
+  await tlsConnection.connect();
+  expect(tlsConnection.alpn).toBe('http/1.1');
+  const request = https.request({
+    method: 'GET',
+    path: '/',
+    host: 'localhost',
+    port: server.port,
+    createConnection() {
+      return tlsConnection.socket;
+    },
+  });
+
+  const responsePromise = new Promise<IncomingMessage>(resolve => request.on('response', resolve));
+  request.end();
+  const response = await responsePromise;
+  expect(response.headers).toEqual({
+    'content-length': '0',
+    connection: 'close',
+    location: 'https://www.location2.com',
+  });
+});
+
 // only test this manually
 // eslint-disable-next-line jest/no-disabled-tests
-test.skip('should be able to get scripts from unpkg using Chrome79 emulator', async () => {
+test.skip('should be able to get scripts from unpkg using Chrome emulator', async () => {
   const tlsConnection = new MitmSocket('3', {
     host: 'unpkg.com',
     port: '443',
@@ -108,7 +144,7 @@ test.skip('should be able to get scripts from unpkg using Chrome79 emulator', as
   const client = http2.connect('https://unpkg.com', {
     createConnection: () => tlsConnection.socket,
   });
-  trackClose(client);
+  closeAfterTest(client);
 
   {
     const request = client.request({ ':path': '/react@16.7.0/umd/react.production.min.js' });
@@ -124,60 +160,6 @@ test.skip('should be able to get scripts from unpkg using Chrome79 emulator', as
     expect(httpResponse).toBeTruthy();
     expect(httpResponse).toMatch(/\(function\(/);
   }
-});
-
-test('should be able to send a request through a proxy', async () => {
-  const htmlString = 'Proxy proxy echo echo';
-  const proxy = await startProxy();
-  const proxyPort = proxy.address().port;
-  const connect = jest.fn();
-  proxy.once('connect', connect);
-
-  const server = await Helpers.runHttpsServer((req, res) => res.end(htmlString));
-  const tlsConnection = new MitmSocket('4', {
-    host: 'localhost',
-    port: String(server.port),
-    clientHelloId: 'Chrome79',
-    servername: 'localhost',
-    proxyUrl: `http://localhost:${proxyPort}`,
-    rejectUnauthorized: false,
-  });
-  Helpers.onClose(async () => tlsConnection.close());
-  await tlsConnection.connect();
-
-  const httpResponse = await httpGetWithSocket(`${server.baseUrl}/any`, {}, tlsConnection.socket);
-  expect(httpResponse).toBe(htmlString);
-  expect(connect).toHaveBeenCalledTimes(1);
-});
-
-test('should be able to send a request through a secure proxy with auth', async () => {
-  const htmlString = 'Proxy secure proxy echo echo';
-  const password = `u:password`;
-  const pass64 = Buffer.from(password).toString('base64');
-  const proxyServer = await Helpers.runHttpsServer((req, res) => res.end(htmlString));
-  const proxy = new Proxy(proxyServer.server);
-  proxy.authenticate = (
-    req: http.IncomingMessage,
-    cb: (req: http.IncomingMessage, success: boolean) => any,
-  ) => {
-    const auth = req.headers['proxy-authorization'];
-    const isValid = auth === `Basic ${pass64}`;
-    if (!isValid) {
-      return cb(null, false);
-    }
-    cb(null, true);
-  };
-  const connect = jest.fn();
-  proxy.once('connect', connect);
-
-  const server = await Helpers.runHttpsServer((req, res) => res.end(htmlString));
-  const tlsConnection = getTlsConnection(server.port);
-  tlsConnection.setProxy(proxyServer.baseUrl, password);
-
-  await tlsConnection.connect();
-  const httpResponse = await httpGetWithSocket(`${server.baseUrl}/any`, {}, tlsConnection.socket);
-  expect(httpResponse).toBe(htmlString);
-  expect(connect).toHaveBeenCalledTimes(1);
 });
 
 test('should handle websockets', async () => {
@@ -221,40 +203,6 @@ test('should handle websockets', async () => {
   expect(messages.length).toBe(messageCount);
 }, 35e3);
 
-test('should handle websockets over proxies', async () => {
-  const proxy = await startProxy();
-  const proxyPort = proxy.address().port;
-  const connect = jest.fn();
-  proxy.once('connect', connect);
-
-  const server = await Helpers.runHttpsServer((req, res) => res.end(''));
-  const serverPort = server.port;
-
-  const wsServer = new WebSocket.Server({ server: server.server });
-  wsServer.on('connection', async (ws: WebSocket) => {
-    ws.send('ola');
-  });
-
-  const tlsConnection = getTlsConnection(serverPort);
-  tlsConnection.connectOpts.keepAlive = true;
-  tlsConnection.setProxy(`http://localhost:${proxyPort}`);
-  await tlsConnection.connect();
-
-  const wsClient = new WebSocket(`wss://localhost:${serverPort}`, {
-    rejectUnauthorized: false,
-    createConnection: () => tlsConnection.socket,
-  });
-
-  Helpers.onClose(async () => wsClient.close());
-  await new Promise(resolve => {
-    wsClient.once('message', msg => {
-      expect(msg).toBe('ola');
-      resolve();
-    });
-  });
-  expect(connect).toHaveBeenCalledTimes(1);
-});
-
 test('should handle upstream disconnects', async () => {
   const server = await Helpers.runHttpsServer((req, res) => {
     res.connection.end();
@@ -268,67 +216,10 @@ test('should handle upstream disconnects', async () => {
   ).rejects.toThrow();
 });
 
-async function httpGetWithSocket(
-  url: string,
-  clientOptions: https.RequestOptions,
-  socket: net.Socket,
-) {
-  return await new Promise<string>((resolve, reject) => {
-    let isResolved = false;
-    socket.once('close', err => {
-      if (isResolved) return;
-      reject(err);
-    });
-    socket.once('error', err => {
-      if (isResolved) return;
-      reject(err);
-    });
-    const request = https.get(
-      url,
-      {
-        ...clientOptions,
-        agent: null,
-        createConnection: () => socket,
-      },
-      async res => {
-        isResolved = true;
-        resolve(await readResponse(res));
-      },
-    );
-    request.on('error', err => {
-      if (isResolved) return;
-      reject(err);
-    });
+function closeAfterTest(session: http2.ClientHttp2Session) {
+  Helpers.onClose(() => {
+    session.destroy();
   });
-}
-
-function getTlsConnection(serverPort: number, clientHello = 'Chrome79') {
-  const tlsConnection = new MitmSocket('5', {
-    host: 'localhost',
-    port: String(serverPort),
-    clientHelloId: clientHello,
-    servername: 'localhost',
-    rejectUnauthorized: false,
-  });
-  Helpers.onClose(async () => tlsConnection.close());
-  return tlsConnection;
-}
-
-async function startProxy() {
-  const proxyPromise = createPromise();
-  const proxy = new Proxy(http.createServer());
-  proxy.listen(0, () => {
-    proxyPromise.resolve();
-  });
-  proxy.unref();
-
-  trackClose(proxy);
-  await proxyPromise.promise;
-  return proxy;
-}
-
-function trackClose(closable: { close: (...args: any[]) => any }) {
-  Helpers.onClose(() => new Promise(resolve => closable.close(() => process.nextTick(resolve))));
 }
 
 async function readResponse(res: stream.Readable) {

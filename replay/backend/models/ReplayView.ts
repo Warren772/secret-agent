@@ -18,6 +18,7 @@ export default class ReplayView extends ViewBackend {
   public tabState: ReplayTabState;
   public readonly playbarView: PlaybarView;
 
+  private isTabLoaded = false;
   private lastInactivityMillis = 0;
 
   public constructor(window: Window) {
@@ -31,17 +32,18 @@ export default class ReplayView extends ViewBackend {
       javascript: false,
     });
 
-    this.interceptHttpRequests();
     this.playbarView = new PlaybarView(window);
     this.checkResponsive = this.checkResponsive.bind(this);
+
+    let resizeTimeout;
+    this.window.browserWindow.on('resize', () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => this.sizeWebContentsToFit(), 20);
+    });
   }
 
   public async load(replayApi: ReplayApi) {
-    if (this.browserView.isDestroyed()) return;
     this.clearReplayApi();
-    await this.window.webContents.session.clearCache();
-
-    this.attach();
 
     this.replayApi = replayApi;
     this.replayApi.onNewTab = this.onNewTab.bind(this);
@@ -53,8 +55,11 @@ export default class ReplayView extends ViewBackend {
     this.playbarView.play();
   }
 
-  public async loadTab(id?: string) {
-    this.clearTabState();
+  public async loadTab(id?: number) {
+    this.isTabLoaded = false;
+    await this.clearTabState();
+    this.attach();
+
     this.window.setAddressBarUrl('Loading session...');
 
     this.tabState = id ? this.replayApi.getTab(id) : this.replayApi.getStartTab;
@@ -67,15 +72,13 @@ export default class ReplayView extends ViewBackend {
 
     this.browserView.setBackgroundColor('#ffffff');
 
-    // eslint-disable-next-line promise/always-return
-    await this.webContents
-      .loadURL(this.tabState.startOrigin)
-      .then(() => this.sizeWebContentsToFit());
-    let resizeTimeout;
-    this.window.browserWindow.on('resize', () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => this.sizeWebContentsToFit(), 20);
-    });
+    await Promise.race([
+      this.webContents.loadURL(this.tabState.startOrigin),
+      new Promise(resolve => setTimeout(resolve, 500)),
+    ]);
+
+    this.isTabLoaded = true;
+    this.sizeWebContentsToFit();
 
     if (this.tabState.currentPlaybarOffsetPct > 0) {
       console.log('Resetting playbar offset to %s%', this.tabState.currentPlaybarOffsetPct);
@@ -89,54 +92,74 @@ export default class ReplayView extends ViewBackend {
   }
 
   public fixBounds(newBounds: { x: number; width: number; y: any; height: number }) {
-    super.fixBounds(newBounds);
-    this.sizeWebContentsToFit();
-
     this.playbarView.fixBounds({
       x: 0,
       y: newBounds.height + newBounds.y,
       width: newBounds.width,
       height: TOOLBAR_HEIGHT,
     });
+    super.fixBounds(newBounds);
+    this.sizeWebContentsToFit();
+    this.window.browserWindow.addBrowserView(this.playbarView.browserView);
   }
 
   public attach() {
+    if (this.isAttached) return;
     super.attach();
+    this.playbarView.attach();
+    this.interceptHttpRequests();
     this.webContents.openDevTools({ mode: 'detach', activate: false });
   }
 
-  public detach() {
-    if (this.isAttached) {
-      this.webContents.closeDevTools();
-    }
+  public detach(detachPlaybar = true) {
+    this.webContents.closeDevTools();
     super.detach();
-    this.playbarView.detach();
+    // clear out everytime we detach
+    this._browserView = null;
+    if (detachPlaybar) this.playbarView.detach();
   }
 
-  public async onTick(tickValue: number) {
+  public async onTickDrag(tickValue: number) {
     if (!this.isAttached || !this.tabState) return;
     const events = this.tabState.setTickValue(tickValue);
     await this.publishTickChanges(events);
   }
 
   public async gotoNextTick() {
-    const offset = await this.nextTick();
-    this.playbarView.changeTickOffset(offset);
+    const nextTick = await this.nextTick();
+    this.playbarView.changeTickOffset(nextTick?.playbarOffset);
   }
 
   public async gotoPreviousTick() {
-    const state = this.tabState.gotoPreviousTick();
+    const state = this.tabState.transitionToPreviousTick();
     await this.publishTickChanges(state);
     this.playbarView.changeTickOffset(this.tabState.currentPlaybarOffsetPct);
   }
 
-  public async nextTick() {
-    if (!this.tabState) return 0;
-    const events = this.tabState.gotoNextTick();
-    await this.publishTickChanges(events);
-    setImmediate(() => this.checkResponsive());
+  public async nextTick(startMillisDeficit = 0) {
+    try {
+      if (!this.tabState) return { playbarOffset: 0, millisToNextTick: 100 };
+      const startTime = new Date();
+      // calculate when client should request the next tick
+      let millisToNextTick = 50;
 
-    return this.tabState.currentPlaybarOffsetPct;
+      const events = this.tabState.transitionToNextTick();
+      await this.publishTickChanges(events);
+      setImmediate(() => this.checkResponsive());
+
+      if (this.tabState.currentTick && this.tabState.nextTick) {
+        const nextTickTime = new Date(this.tabState.nextTick.timestamp);
+        const currentTickTime = new Date(this.tabState.currentTick.timestamp);
+        const diff = nextTickTime.getTime() - currentTickTime.getTime();
+        const fnDuration = new Date().getTime() - startTime.getTime();
+        millisToNextTick = diff - fnDuration + startMillisDeficit;
+      }
+
+      return { playbarOffset: this.tabState.currentPlaybarOffsetPct, millisToNextTick };
+    } catch (err) {
+      console.log('ERROR getting next tick', err);
+      return { playbarOffset: this.tabState.currentPlaybarOffsetPct, millisToNextTick: 100 };
+    }
   }
 
   public destroy() {
@@ -146,6 +169,7 @@ export default class ReplayView extends ViewBackend {
   }
 
   public sizeWebContentsToFit() {
+    if (!this.tabState || !this.isTabLoaded) return;
     const screenSize = this.browserView.getBounds();
 
     const viewSize = {
@@ -166,7 +190,7 @@ export default class ReplayView extends ViewBackend {
     }
 
     this.browserView.webContents.enableDeviceEmulation({
-      deviceScaleFactor: 0,
+      deviceScaleFactor: 1,
       screenPosition: 'desktop',
       viewSize,
       scale,
@@ -180,15 +204,20 @@ export default class ReplayView extends ViewBackend {
   ) {
     if (!events || !events.length) return;
     const [domChanges] = events;
-    if (
-      domChanges?.length &&
-      (domChanges[0].action === 'newDocument' || (domChanges[0].action as any) === 'load') &&
-      domChanges[0].frameIdPath === 'main'
-    ) {
-      const nav = domChanges.shift();
-      console.log('Navigating to url', nav.textContent);
-      await this.webContents.loadURL(nav.textContent);
+
+    if (domChanges?.length) {
+      const [{ action, frameIdPath }] = domChanges;
+      const hasNewUrlToLoad =
+        (action === 'newDocument' || (action as any) === 'load') && frameIdPath === 'main';
+      if (hasNewUrlToLoad) {
+        const nav = domChanges.shift();
+        await Promise.race([
+          this.webContents.loadURL(nav.textContent),
+          new Promise(resolve => setTimeout(resolve, 500)),
+        ]);
+      }
     }
+
     this.webContents.send('dom:apply', ...events);
     this.window.setAddressBarUrl(this.tabState.urlOrigin);
   }
@@ -249,6 +278,7 @@ export default class ReplayView extends ViewBackend {
     if (this.tabState) {
       this.tabState.off('tick:changes', this.checkResponsive);
       this.tabState = null;
+      this.detach(false);
     }
   }
 

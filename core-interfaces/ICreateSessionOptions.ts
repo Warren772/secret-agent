@@ -5,10 +5,11 @@ import IViewport from './IViewport';
 
 export default interface ICreateSessionOptions extends ISessionOptions {
   sessionName?: string;
-  emulatorId?: string;
+  browserEmulatorId?: string;
   userProfile?: IUserProfile;
   scriptInstanceMeta?: IScriptInstanceMeta;
   viewport?: IViewport;
   timezoneId?: string;
   locale?: string;
+  upstreamProxyUrl?: string;
 }

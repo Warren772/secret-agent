@@ -6,29 +6,25 @@
     "postinstall": "yarn workspace @secret-agent/mitm-socket postinstall"
   },
   "devDependencies": {
-    "lerna": "^3.4.3",
-    "source-map-support": "^0.5.16"
+    "lerna": "^3.4.3"
+  },
+  "engines": {
+    "node": ">=13.2.0"
   },
   "workspaces": {
     "packages": [
       "client",
       "core",
       "core-interfaces",
-      "core-server",
-      "emulators",
-      "emulator-plugins/*",
+      "emulate-browsers/*",
+      "emulate-humans/*",
       "full-client",
       "puppet",
+      "puppet-interfaces",
       "puppet-chrome",
-      "humanoids",
-      "humanoid-plugins/*",
-      "injected-scripts",
       "mitm",
       "mitm-socket",
-      "remote-client",
-      "remote-interfaces",
       "replay",
-      "session-state",
       "commons"
     ]
   },

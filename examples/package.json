@@ -1,5 +1,3 @@
 {
-  "dependencies": {
-    "@secret-agent/full-client": "1.0.0-alpha.12"
-  }
+  "dependencies": {}
 }

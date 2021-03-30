@@ -1,9 +1,10 @@
 import * as eventUtils from '@secret-agent/commons/eventUtils';
-import { IRegisteredEventListener, TypedEventEmitter } from '@secret-agent/commons/eventUtils';
+import { TypedEventEmitter } from '@secret-agent/commons/eventUtils';
+import IRegisteredEventListener from '@secret-agent/core-interfaces/IRegisteredEventListener';
 import Protocol from 'devtools-protocol';
-import { IPuppetWorker, IPuppetWorkerEvents } from '@secret-agent/puppet/interfaces/IPuppetWorker';
+import { IPuppetWorker, IPuppetWorkerEvents } from '@secret-agent/puppet-interfaces/IPuppetWorker';
 import { createPromise } from '@secret-agent/commons/utils';
-import { IBoundLog } from '@secret-agent/commons/Logger';
+import { IBoundLog } from '@secret-agent/core-interfaces/ILog';
 import { BrowserContext } from './BrowserContext';
 import { CDPSession } from './CDPSession';
 import { NetworkManager } from './NetworkManager';
@@ -16,6 +17,7 @@ import ExecutionContextCreatedEvent = Protocol.Runtime.ExecutionContextCreatedEv
 export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IPuppetWorker {
   public readonly browserContext: BrowserContext;
   public isReady: Promise<Error | null>;
+  public hasLoadedResponse = false;
 
   protected readonly logger: IBoundLog;
 
@@ -26,22 +28,23 @@ export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IP
   private readonly registeredEvents: IRegisteredEventListener[];
   private readonly executionContextId = createPromise<number>();
 
-  public get id() {
+  public get id(): string {
     return this.targetInfo.targetId;
   }
 
-  public get url() {
+  public get url(): string {
     return this.targetInfo.url;
   }
 
-  public get type() {
-    return this.targetInfo.type;
+  public get type(): IPuppetWorker['type'] {
+    return this.targetInfo.type as IPuppetWorker['type'];
   }
 
   constructor(
     browserContext: BrowserContext,
     parentNetworkManager: NetworkManager,
     cdpSession: CDPSession,
+    workerInitializeFn: (worker: IPuppetWorker) => Promise<void>,
     logger: IBoundLog,
     targetInfo: TargetInfo,
   ) {
@@ -60,31 +63,38 @@ export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IP
       ['Runtime.executionContextCreated', this.onContextCreated.bind(this)],
       ['disconnected', this.emit.bind(this, 'close')],
     ]);
-    this.isReady = this.initialize(parentNetworkManager).catch(err => err);
+    this.isReady = this.initialize(parentNetworkManager, workerInitializeFn).catch(err => err);
   }
 
-  async initialize(pageNetworkManager: NetworkManager) {
+  async initialize(
+    pageNetworkManager: NetworkManager,
+    initializeFn: (worker: IPuppetWorker) => Promise<void>,
+  ): Promise<void> {
     await this.networkManager.initializeFromParent(pageNetworkManager).catch(err => {
       // web workers can use parent network
       if (err.message.includes(`'Fetch.enable' wasn't found`)) return;
       throw err;
     });
-    await Promise.all([
-      this.cdpSession.send('Runtime.enable'),
-      this.cdpSession.send('Runtime.runIfWaitingForDebugger'),
-    ]);
+
+    await this.cdpSession.send('Runtime.enable');
+    if (initializeFn) await initializeFn(this);
+
+    await this.cdpSession.send('Runtime.runIfWaitingForDebugger');
   }
 
-  async evaluate<T>(expression: string): Promise<T> {
-    const didThrowError = await this.isReady;
-    if (didThrowError) throw didThrowError;
+  async evaluate<T>(expression: string, isInitializationScript = false): Promise<T> {
+    if (!isInitializationScript) {
+      const didThrowError = await this.isReady;
+      if (didThrowError) throw didThrowError;
+    }
     const contextId = await this.executionContextId.promise;
     const result = await this.cdpSession.send('Runtime.evaluate', {
       expression,
-      awaitPromise: true,
+      awaitPromise: !isInitializationScript,
       contextId,
       returnByValue: true,
     });
+
     if (result.exceptionDetails) {
       throw ConsoleMessage.exceptionToError(result.exceptionDetails);
     }
@@ -94,7 +104,7 @@ export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IP
     return remote.value as T;
   }
 
-  async close() {
+  close(): void {
     this.networkManager.close();
     this.cancelPendingEvents('Worker closing', ['close']);
     eventUtils.removeEventListeners(this.registeredEvents);
@@ -108,11 +118,11 @@ export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IP
     };
   }
 
-  private onContextCreated(event: ExecutionContextCreatedEvent) {
+  private onContextCreated(event: ExecutionContextCreatedEvent): void {
     this.executionContextId.resolve(event.context.id);
   }
 
-  private onRuntimeException(msg: ExceptionThrownEvent) {
+  private onRuntimeException(msg: ExceptionThrownEvent): void {
     const error = ConsoleMessage.exceptionToError(msg.exceptionDetails);
 
     this.emit('page-error', {
@@ -120,7 +130,7 @@ export class Worker extends TypedEventEmitter<IPuppetWorkerEvents> implements IP
     });
   }
 
-  private async onRuntimeConsole(event: ConsoleAPICalledEvent) {
+  private onRuntimeConsole(event: ConsoleAPICalledEvent): void {
     const message = ConsoleMessage.create(this.cdpSession, event);
     const frameId = `${this.type}:${this.url}`; // TBD
 

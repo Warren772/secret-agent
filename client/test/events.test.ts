@@ -1,92 +1,110 @@
 import IResourceMeta from '@secret-agent/core-interfaces/IResourceMeta';
-import { SecretAgentClientGenerator } from '../index';
+import ICoreRequestPayload from '@secret-agent/core-interfaces/ICoreRequestPayload';
 import Resource from '../lib/Resource';
+import { Handler } from '../index';
+import ConnectionToCore from '../connections/ConnectionToCore';
+
+const sessionMeta = {
+  tabId: 1,
+  sessionId: 'session-id',
+  sessionsDataLocation: '',
+};
+
+let testConnection: ConnectionToCore;
+let spy: jest.SpyInstance;
+beforeEach(() => {
+  class TestConnection extends ConnectionToCore {
+    async internalSendRequest({ command, messageId }: ICoreRequestPayload): Promise<void> {
+      if (command === 'Session.create') {
+        this.onMessage({ data: sessionMeta, responseId: messageId });
+      } else if (command === 'Session.addEventListener') {
+        this.onMessage({ data: { listenerId: 'listener-id' }, responseId: messageId });
+      } else {
+        this.onMessage({ data: {}, responseId: messageId });
+      }
+    }
+
+    protected createConnection = () => Promise.resolve(null);
+    protected destroyConnection = () => Promise.resolve(null);
+  }
+  testConnection = new TestConnection();
+  spy = jest.spyOn<any, any>(testConnection, 'internalSendRequest');
+});
 
 describe('events', () => {
   it('receives close event', async () => {
-    const { SecretAgent, coreClient } = SecretAgentClientGenerator();
-    const sessionMeta = {
-      tabId: 'tab-id',
-      sessionId: 'session-id',
-      sessionsDataLocation: '',
-    };
-    coreClient.pipeOutgoingCommand = jest.fn<any, any>(async (_, command: string) => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      if (command === 'createTab') {
-        return { data: sessionMeta };
-      }
-      if (command === 'addEventListener') {
-        return { data: { listenerId: 'listener-id' } };
-      }
-    });
+    const handler = new Handler(testConnection);
 
     let isClosed = false;
-    const agent = await new SecretAgent();
+    const agent = await handler.createAgent();
     await agent.on('close', () => {
       isClosed = true;
     });
 
+    testConnection.onMessage({
+      meta: { sessionId: 'session-id' },
+      listenerId: 'listener-id',
+      eventArgs: [],
+    });
     await agent.close();
-    coreClient.pipeIncomingEvent(sessionMeta, 'listener-id', []);
 
-    const outgoingCommands = (coreClient.pipeOutgoingCommand as any).mock.calls;
-    expect(outgoingCommands.map(c => c.slice(0, 2))).toMatchObject([
-      [null, 'createTab'],
-      [expect.any(Object), 'addEventListener'],
-      [expect.any(Object), 'close'],
+    const outgoingCommands = spy.mock.calls;
+    expect(outgoingCommands.map(c => c[0].command)).toMatchObject([
+      'Core.connect',
+      'Session.create',
+      'Session.addEventListener', // automatic close tracker
+      'Session.addEventListener', // user added close listener
+      'Session.close',
     ]);
     expect(isClosed).toBe(true);
-
-    await SecretAgent.shutdown();
   });
 
   it('adds and removes event listeners', async () => {
-    const { SecretAgent, coreClient } = SecretAgentClientGenerator();
-    const sessionMeta = {
-      tabId: 'tab-id',
-      sessionId: 'session-id',
-      sessionsDataLocation: '',
-    };
+    const handler = new Handler(testConnection);
 
-    coreClient.pipeOutgoingCommand = jest.fn<any, any>(async (_, command: string) => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      if (command === 'createTab') {
-        return { data: sessionMeta };
-      }
-      if (command === 'addEventListener') {
-        return { data: { listenerId: 'listener-id' } };
-      }
-    });
+    let eventCount = 0;
+    const agent = await handler.createAgent();
 
-    const agent = await new SecretAgent();
-    const onResourceFn = resource => {
+    const onResourceFn = (resource): void => {
       expect(resource).toBeInstanceOf(Resource);
       eventCount += 1;
     };
 
-    let eventCount = 0;
     await agent.activeTab.on('resource', onResourceFn);
 
-    coreClient.pipeIncomingEvent(sessionMeta, 'listener-id', [
-      {
-        id: 1,
-      } as IResourceMeta,
-    ]);
-    coreClient.pipeIncomingEvent(sessionMeta, 'listener-id', [
-      {
-        id: 2,
-      } as IResourceMeta,
-    ]);
+    testConnection.onMessage({
+      meta: sessionMeta,
+      listenerId: 'listener-id',
+      eventArgs: [
+        {
+          id: 1,
+        } as IResourceMeta,
+      ],
+    });
+    testConnection.onMessage({
+      meta: sessionMeta,
+      listenerId: 'listener-id',
+      eventArgs: [
+        {
+          id: 2,
+        } as IResourceMeta,
+      ],
+    });
+
+    // need to wait since events are handled on a promise resolution
+    await new Promise(setImmediate);
     expect(eventCount).toBe(2);
 
     await agent.activeTab.off('resource', onResourceFn);
-    coreClient.pipeIncomingEvent(sessionMeta, 'listener-id', [
-      {
-        id: 3,
-      } as IResourceMeta,
-    ]);
+    testConnection.onMessage({
+      meta: sessionMeta,
+      listenerId: 'listener-id',
+      eventArgs: [
+        {
+          id: 3,
+        } as IResourceMeta,
+      ],
+    });
     expect(eventCount).toBe(2);
-
-    await SecretAgent.shutdown();
   });
 });

@@ -1,32 +1,42 @@
 import initializeConstantsAndProperties from 'awaited-dom/base/initializeConstantsAndProperties';
 import StateMachine from 'awaited-dom/base/StateMachine';
 import { ISuperElement } from 'awaited-dom/base/interfaces/super';
-import AwaitedPath from 'awaited-dom/base/AwaitedPath';
 import { IRequestInit } from 'awaited-dom/base/interfaces/official';
 import SuperDocument from 'awaited-dom/impl/super-klasses/SuperDocument';
 import Storage from 'awaited-dom/impl/official-klasses/Storage';
-import { createResponse, createStorage, createSuperDocument } from 'awaited-dom/impl/create';
+import CSSStyleDeclaration from 'awaited-dom/impl/official-klasses/CSSStyleDeclaration';
 import Request from 'awaited-dom/impl/official-klasses/Request';
 import { ILocationTrigger, LocationStatus } from '@secret-agent/core-interfaces/Location';
 import IWaitForResourceOptions from '@secret-agent/core-interfaces/IWaitForResourceOptions';
 import IWaitForElementOptions from '@secret-agent/core-interfaces/IWaitForElementOptions';
+import Response from 'awaited-dom/impl/official-klasses/Response';
+import IWaitForOptions from '@secret-agent/core-interfaces/IWaitForOptions';
+import { IElementIsolate } from 'awaited-dom/base/interfaces/isolate';
+import IScreenshotOptions from '@secret-agent/core-interfaces/IScreenshotOptions';
+import AwaitedPath from 'awaited-dom/base/AwaitedPath';
 import CoreTab from './CoreTab';
 import Resource, { createResource } from './Resource';
 import IWaitForResourceFilter from '../interfaces/IWaitForResourceFilter';
 import WebsocketResource from './WebsocketResource';
-import IAwaitedOptions from '../interfaces/IAwaitedOptions';
-import RequestGenerator, { getRequestIdOrUrl } from './Request';
 import AwaitedEventTarget from './AwaitedEventTarget';
-import ISecretAgent from '../interfaces/ISecretAgent';
-import CookieStorage, { createCookieStorage } from './CookieStorage';
+import CookieStorage from './CookieStorage';
+import Agent, { IState as IAgentState } from './Agent';
+import FrameEnvironment from './FrameEnvironment';
+import CoreFrameEnvironment from './CoreFrameEnvironment';
+import IAwaitedOptions from '../interfaces/IAwaitedOptions';
 
+const awaitedPathState = StateMachine<
+  any,
+  { awaitedPath: AwaitedPath; awaitedOptions: IAwaitedOptions }
+>();
 const { getState, setState } = StateMachine<Tab, IState>();
-const agentState = StateMachine<ISecretAgent, { activeTab: Tab; tabs: Tab[] }>();
-const awaitedPathState = StateMachine<any, { awaitedPath: AwaitedPath }>();
+const agentState = StateMachine<Agent, IAgentState>();
 
 export interface IState {
-  secretAgent: ISecretAgent;
+  secretAgent: Agent;
   coreTab: Promise<CoreTab>;
+  mainFrameEnvironment: FrameEnvironment;
+  frameEnvironments: FrameEnvironment[];
 }
 
 interface IEventType {
@@ -41,20 +51,31 @@ const propertyKeys: (keyof Tab)[] = [
   'localStorage',
   'sessionStorage',
   'document',
+  'frameEnvironments',
+  'mainFrameEnvironment',
   'Request',
 ];
 
-export default class Tab extends AwaitedEventTarget<IEventType, IState> {
-  constructor(secretAgent: ISecretAgent, coreTab: Promise<CoreTab>) {
-    super();
+export default class Tab extends AwaitedEventTarget<IEventType> {
+  constructor(secretAgent: Agent, coreTab: Promise<CoreTab>) {
+    super(() => {
+      return { target: coreTab };
+    });
     initializeConstantsAndProperties(this, [], propertyKeys);
+    const mainFrameEnvironment = new FrameEnvironment(
+      secretAgent,
+      this,
+      coreTab.then(x => x.mainFrameEnvironment),
+    );
     setState(this, {
       secretAgent,
       coreTab,
+      mainFrameEnvironment,
+      frameEnvironments: [mainFrameEnvironment],
     });
   }
 
-  public get tabId(): Promise<string> {
+  public get tabId(): Promise<number> {
     return getCoreTab(this).then(x => x.tabId);
   }
 
@@ -63,84 +84,100 @@ export default class Tab extends AwaitedEventTarget<IEventType, IState> {
   }
 
   public get url(): Promise<string> {
-    return getCoreTab(this).then(x => x.getUrl());
+    return this.mainFrameEnvironment.url;
+  }
+
+  public get mainFrameEnvironment(): FrameEnvironment {
+    return getState(this).mainFrameEnvironment;
   }
 
   public get cookieStorage(): CookieStorage {
-    return createCookieStorage(getCoreTab(this));
+    return this.mainFrameEnvironment.cookieStorage;
+  }
+
+  public get frameEnvironments(): Promise<FrameEnvironment[]> {
+    return getRefreshedFrameEnvironments(this);
   }
 
   public get document(): SuperDocument {
-    const awaitedPath = new AwaitedPath('document');
-    const awaitedOptions = { ...getState(this) };
-    return createSuperDocument<IAwaitedOptions>(awaitedPath, awaitedOptions) as SuperDocument;
+    return this.mainFrameEnvironment.document;
   }
 
   public get localStorage(): Storage {
-    const awaitedPath = new AwaitedPath('localStorage');
-    const awaitedOptions = { ...getState(this) };
-    return createStorage<IAwaitedOptions>(awaitedPath, awaitedOptions) as Storage;
+    return this.mainFrameEnvironment.localStorage;
   }
 
   public get sessionStorage(): Storage {
-    const awaitedPath = new AwaitedPath('sessionStorage');
-    const awaitedOptions = { ...getState(this) };
-    return createStorage<IAwaitedOptions>(awaitedPath, awaitedOptions) as Storage;
+    return this.mainFrameEnvironment.sessionStorage;
   }
 
   public get Request(): typeof Request {
-    return RequestGenerator(getCoreTab(this));
+    return this.mainFrameEnvironment.Request;
   }
 
   // METHODS
 
-  public async fetch(request: Request | string, init?: IRequestInit) {
-    const requestInput = await getRequestIdOrUrl(request);
-    const coreTab = await getCoreTab(this);
-    const attachedState = await coreTab.fetch(requestInput, init);
-
-    const awaitedPath = new AwaitedPath().withAttachedId(attachedState.id);
-    return createResponse(awaitedPath, { ...getState(this) });
+  public async fetch(request: Request | string, init?: IRequestInit): Promise<Response> {
+    return await this.mainFrameEnvironment.fetch(request, init);
   }
 
-  public async goto(href: string) {
+  public async getFrameEnvironment(element: IElementIsolate): Promise<FrameEnvironment | null> {
+    const { awaitedPath, awaitedOptions } = awaitedPathState.getState(element);
+    const elementCoreFrame = await awaitedOptions.coreFrame;
+    const frameMeta = await elementCoreFrame.getChildFrameEnvironment(awaitedPath.toJSON());
+    if (!frameMeta) return null;
+
     const coreTab = await getCoreTab(this);
-    const resource = await coreTab.goto(href);
+    return await getOrCreateFrameEnvironment(this, coreTab.getCoreFrameForMeta(frameMeta));
+  }
+
+  public getComputedStyle(element: IElementIsolate, pseudoElement?: string): CSSStyleDeclaration {
+    return this.mainFrameEnvironment.getComputedStyle(element, pseudoElement);
+  }
+
+  public async goto(href: string, timeoutMs?: number): Promise<Resource> {
+    const coreTab = await getCoreTab(this);
+    const resource = await coreTab.goto(href, timeoutMs);
     return createResource(resource, Promise.resolve(coreTab));
   }
 
-  public async goBack() {
+  public async goBack(timeoutMs?: number): Promise<string> {
     const coreTab = await getCoreTab(this);
-    return coreTab.goBack();
+    return coreTab.goBack(timeoutMs);
   }
 
-  public async goForward() {
+  public async goForward(timeoutMs?: number): Promise<string> {
     const coreTab = await getCoreTab(this);
-    return coreTab.goForward();
+    return coreTab.goForward(timeoutMs);
   }
 
-  public async getJsValue<T>(path: string) {
+  public async reload(timeoutMs?: number): Promise<void> {
     const coreTab = await getCoreTab(this);
-    return coreTab.getJsValue<T>(path);
+    return coreTab.reload(timeoutMs);
   }
 
-  public async isElementVisible(element: ISuperElement): Promise<boolean> {
-    const { awaitedPath } = awaitedPathState.getState(element);
-    const coreTab = await getCoreTab(this);
-    return coreTab.isElementVisible(awaitedPath.toJSON());
+  public async getJsValue<T>(path: string): Promise<{ value: T; type: string }> {
+    return await this.mainFrameEnvironment.getJsValue(path);
   }
 
-  public async waitForAllContentLoaded(): Promise<void> {
-    const coreTab = await getCoreTab(this);
-    await coreTab.waitForLoad(LocationStatus.AllContentLoaded);
+  public async isElementVisible(element: IElementIsolate): Promise<boolean> {
+    return await this.mainFrameEnvironment.isElementVisible(element);
   }
 
-  public async waitForLoad(status: LocationStatus): Promise<void> {
+  public async takeScreenshot(options?: IScreenshotOptions): Promise<Buffer> {
     const coreTab = await getCoreTab(this);
-    await coreTab.waitForLoad(status);
+    return coreTab.takeScreenshot(options);
   }
 
-  public async waitForResource(
+  public async waitForPaintingStable(options?: IWaitForOptions): Promise<void> {
+    return await this.mainFrameEnvironment.waitForPaintingStable(options);
+  }
+
+  public async waitForLoad(status: LocationStatus, options?: IWaitForOptions): Promise<void> {
+    return await this.mainFrameEnvironment.waitForLoad(status, options);
+  }
+
+  public waitForResource(
     filter: IWaitForResourceFilter,
     options?: IWaitForResourceOptions,
   ): Promise<(Resource | WebsocketResource)[]> {
@@ -151,14 +188,14 @@ export default class Tab extends AwaitedEventTarget<IEventType, IState> {
     element: ISuperElement,
     options?: IWaitForElementOptions,
   ): Promise<void> {
-    const { awaitedPath } = awaitedPathState.getState(element);
-    const coreTab = await getCoreTab(this);
-    await coreTab.waitForElement(awaitedPath.toJSON(), options);
+    return await this.mainFrameEnvironment.waitForElement(element, options);
   }
 
-  public async waitForLocation(trigger: ILocationTrigger): Promise<void> {
-    const coreTab = await getCoreTab(this);
-    await coreTab.waitForLocation(trigger);
+  public async waitForLocation(
+    trigger: ILocationTrigger,
+    options?: IWaitForOptions,
+  ): Promise<void> {
+    return await this.mainFrameEnvironment.waitForLocation(trigger, options);
   }
 
   public async waitForMillis(millis: number): Promise<void> {
@@ -166,31 +203,56 @@ export default class Tab extends AwaitedEventTarget<IEventType, IState> {
     await coreTab.waitForMillis(millis);
   }
 
-  public async waitForWebSocket(url: string | RegExp): Promise<void> {
-    const coreTab = await getCoreTab(this);
-    await coreTab.waitForWebSocket(url);
-  }
-
-  public async focus() {
+  public focus(): Promise<void> {
     const { secretAgent, coreTab } = getState(this);
-    agentState.setState(secretAgent, {
-      activeTab: this,
-    });
+    agentState.getState(secretAgent).connection.activeTab = this;
     return coreTab.then(x => x.focusTab());
   }
 
-  public async close() {
+  public close(): Promise<void> {
     const { secretAgent, coreTab } = getState(this);
-    const { tabs } = agentState.getState(secretAgent);
-    const updatedTabs = tabs.filter(x => x !== this);
-    if (updatedTabs.length) {
-      agentState.setState(secretAgent, {
-        activeTab: updatedTabs[0],
-        tabs: updatedTabs,
-      });
-    }
+    const { connection } = agentState.getState(secretAgent);
+    connection.closeTab(this);
     return coreTab.then(x => x.close());
   }
+}
+
+async function getOrCreateFrameEnvironment(
+  tab: Tab,
+  coreFrame: CoreFrameEnvironment,
+): Promise<FrameEnvironment> {
+  const state = getState(tab);
+  const { frameEnvironments } = state;
+
+  for (const frameEnvironment of frameEnvironments) {
+    const frameId = await frameEnvironment.frameId;
+    if (frameId === coreFrame.frameId) return frameEnvironment;
+  }
+  const frameEnvironment = new FrameEnvironment(state.secretAgent, tab, Promise.resolve(coreFrame));
+  frameEnvironments.push(frameEnvironment);
+  return frameEnvironment;
+}
+
+async function getRefreshedFrameEnvironments(tab: Tab): Promise<FrameEnvironment[]> {
+  const state = getState(tab);
+  const { frameEnvironments } = state;
+  const coreTab = await state.coreTab;
+  const coreFrames = await coreTab.getCoreFrameEnvironments();
+
+  const newFrameIds = coreFrames.map(x => x.frameId);
+
+  for (const frameEnvironment of frameEnvironments) {
+    const id = await frameEnvironment.frameId;
+    // remove frames that are gone
+    if (!newFrameIds.includes(id)) {
+      const idx = frameEnvironments.indexOf(frameEnvironment);
+      frameEnvironments.splice(idx, 1);
+    }
+  }
+
+  await Promise.all(coreFrames.map(x => getOrCreateFrameEnvironment(tab, x)));
+
+  return frameEnvironments;
 }
 
 export function getCoreTab(tab: Tab): Promise<CoreTab> {
@@ -199,6 +261,6 @@ export function getCoreTab(tab: Tab): Promise<CoreTab> {
 
 // CREATE
 
-export function createTab(secretAgent: ISecretAgent, coreTab: Promise<CoreTab>): Tab {
+export function createTab(secretAgent: Agent, coreTab: Promise<CoreTab>): Tab {
   return new Tab(secretAgent, coreTab);
 }

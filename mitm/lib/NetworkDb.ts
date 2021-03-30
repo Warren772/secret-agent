@@ -1,7 +1,8 @@
-import Database, { Database as SqliteDatabase, Transaction } from 'better-sqlite3';
+import * as Database from 'better-sqlite3';
+import { Database as SqliteDatabase, Transaction } from 'better-sqlite3';
 import SqliteTable from '@secret-agent/commons/SqliteTable';
 import Log from '@secret-agent/commons/Logger';
-import CertificatesTable from '../models/CommandsTable';
+import CertificatesTable from '../models/CertificatesTable';
 import PkiTable from '../models/PkiTable';
 
 const { log } = Log(module);
@@ -15,7 +16,7 @@ export default class NetworkDb {
   private readonly tables: SqliteTable<any>[] = [];
 
   constructor(baseDir: string) {
-    this.db = new Database(`${baseDir}/.network.db`);
+    this.db = new Database(`${baseDir}/network.db`);
     this.certificates = new CertificatesTable(this.db);
     this.pki = new PkiTable(this.db);
     this.saveInterval = setInterval(this.flush.bind(this), 5e3).unref();
@@ -37,7 +38,7 @@ export default class NetworkDb {
     });
   }
 
-  public close() {
+  public close(): void {
     if (this.db) {
       clearInterval(this.saveInterval);
       this.flush();
@@ -46,7 +47,7 @@ export default class NetworkDb {
     this.db = null;
   }
 
-  public flush() {
+  public flush(): void {
     this.batchInsert.immediate();
   }
 }

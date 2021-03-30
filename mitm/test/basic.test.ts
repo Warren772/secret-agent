@@ -1,12 +1,15 @@
-import http, { IncomingHttpHeaders } from 'http';
+import * as http from 'http';
+import { IncomingHttpHeaders } from 'http';
 import { Helpers } from '@secret-agent/testing';
-import HttpProxyAgent from 'http-proxy-agent';
+import * as HttpProxyAgent from 'http-proxy-agent';
+import { URL } from 'url';
 import { AddressInfo } from 'net';
-import WebSocket from 'ws';
-import Url from 'url';
+import * as WebSocket from 'ws';
+import * as Url from 'url';
 import { createPromise } from '@secret-agent/commons/utils';
+import IHttpResourceLoadDetails from '@secret-agent/core-interfaces/IHttpResourceLoadDetails';
 import HttpRequestHandler from '../handlers/HttpRequestHandler';
-import RequestSession from '../handlers/RequestSession';
+import RequestSession, { IRequestSessionRequestEvent } from '../handlers/RequestSession';
 import MitmServer from '../lib/MitmProxy';
 import HeadersHandler from '../handlers/HeadersHandler';
 import HttpUpgradeHandler from '../handlers/HttpUpgradeHandler';
@@ -17,12 +20,12 @@ const mocks = {
     onRequest: jest.spyOn<any, any>(HttpRequestHandler.prototype, 'onRequest'),
   },
   HeadersHandler: {
-    waitForResource: jest.spyOn(HeadersHandler, 'waitForBrowserRequest'),
+    determineResourceType: jest.spyOn(HeadersHandler, 'determineResourceType'),
   },
 };
 
 beforeAll(() => {
-  mocks.HeadersHandler.waitForResource.mockImplementation(async () => {
+  mocks.HeadersHandler.determineResourceType.mockImplementation(async () => {
     return {
       resourceType: 'Document',
     } as any;
@@ -117,12 +120,9 @@ describe('basic MitM tests', () => {
       upstreamProxyConnected = true;
       socket.end();
     });
+    const sessionId = `${(sessionCounter += 1)}`;
 
-    const session = new RequestSession(
-      `${(sessionCounter += 1)}`,
-      'any agent',
-      Promise.resolve(upstreamProxyHost),
-    );
+    const session = new RequestSession(sessionId, 'any agent', upstreamProxyHost);
 
     const proxyCredentials = session.getProxyCredentials();
 
@@ -146,7 +146,7 @@ describe('basic MitM tests', () => {
       .unref();
     Helpers.onClose(
       () =>
-        new Promise(resolve => {
+        new Promise<void>(resolve => {
           server.close(() => resolve());
         }),
     );
@@ -205,6 +205,9 @@ describe('basic MitM tests', () => {
 
     const proxyCredentials = session.getProxyCredentials();
 
+    const resourcePromise = new Promise<IRequestSessionRequestEvent>(resolve =>
+      session.on('response', resolve),
+    );
     await Helpers.httpRequest(
       `${httpServer.url}page2`,
       'POST',
@@ -217,9 +220,11 @@ describe('basic MitM tests', () => {
       Buffer.from(JSON.stringify({ gotData: true, isCompressed: 'no' })),
     );
 
-    expect(session.requests).toHaveLength(1);
-    expect(session.requests[0].requestPostData).toBeTruthy();
-    expect(session.requests[0].requestPostData.toString()).toBe(
+    expect(session.requestedUrls).toHaveLength(1);
+
+    const resource = await resourcePromise;
+    expect(resource.request.postData).toBeTruthy();
+    expect(resource.request.postData.toString()).toBe(
       JSON.stringify({ gotData: true, isCompressed: 'no' }),
     );
 
@@ -245,6 +250,9 @@ describe('basic MitM tests', () => {
 
     const largeBuffer = Buffer.concat(buffers);
 
+    const resourcePromise = new Promise<IRequestSessionRequestEvent>(resolve =>
+      session.on('response', resolve),
+    );
     await Helpers.httpRequest(
       `${httpServer.url}page2`,
       'POST',
@@ -257,8 +265,9 @@ describe('basic MitM tests', () => {
       Buffer.from(JSON.stringify({ largeBuffer: largeBuffer.toString('hex') })),
     );
 
-    expect(session.requests).toHaveLength(1);
-    expect(session.requests[0].requestPostData.toString()).toBe(
+    const resource = await resourcePromise;
+    expect(session.requestedUrls).toHaveLength(1);
+    expect(resource.request.postData.toString()).toBe(
       JSON.stringify({ largeBuffer: largeBuffer.toString('hex') }),
     );
 
@@ -329,26 +338,27 @@ describe('basic MitM tests', () => {
   });
 
   it('should intercept requests', async () => {
-    mocks.HeadersHandler.waitForResource.mockRestore();
+    mocks.HeadersHandler.determineResourceType.mockRestore();
     const httpServer = await Helpers.runHttpServer();
     const mitmServer = await MitmServer.start();
     Helpers.needsClosing.push(mitmServer);
     const proxyHost = `http://localhost:${mitmServer.port}`;
 
     const session = new RequestSession(`${(sessionCounter += 1)}`, 'any agent', null);
-    session.delegate.modifyHeadersBeforeSend = jest.fn();
-    session.registerResource({
-      tabId: '1',
-      browserRequestId: '25.123',
-      url: `${httpServer.url}page1`,
-      method: 'GET',
-      resourceType: 'Document',
-      hasUserGesture: true,
-      isUserNavigation: true,
-      origin: undefined,
-      referer: undefined,
-      documentUrl: `${httpServer.url}page1`,
-    });
+    session.networkInterceptorDelegate.http.requestHeaders = jest.fn();
+    session.browserRequestMatcher.onBrowserRequestedResource(
+      {
+        browserRequestId: '25.123',
+        url: new URL(`${httpServer.url}page1`),
+        method: 'GET',
+        resourceType: 'Document',
+        hasUserGesture: true,
+        isUserNavigation: true,
+        requestLowerHeaders: {},
+        documentUrl: `${httpServer.url}page1`,
+      } as IHttpResourceLoadDetails,
+      1,
+    );
     const onresponse = jest.fn();
     const onError = jest.fn();
     session.on('response', onresponse);
@@ -358,7 +368,7 @@ describe('basic MitM tests', () => {
 
     await Helpers.httpGet(`${httpServer.url}page1`, proxyHost, proxyCredentials);
 
-    expect(session.delegate.modifyHeadersBeforeSend).toHaveBeenCalledTimes(1);
+    expect(session.networkInterceptorDelegate.http.requestHeaders).toHaveBeenCalledTimes(1);
     expect(onresponse).toHaveBeenCalledTimes(1);
 
     const [responseEvent] = onresponse.mock.calls[0];
@@ -371,7 +381,7 @@ describe('basic MitM tests', () => {
     expect(response.remoteAddress).toContain(httpServer.port);
     expect(wasCached).toBe(false);
     expect(onError).not.toHaveBeenCalled();
-    mocks.HeadersHandler.waitForResource.mockImplementation(async () => ({} as any));
+    mocks.HeadersHandler.determineResourceType.mockImplementation(async () => ({} as any));
 
     await httpServer.close();
     await mitmServer.close();

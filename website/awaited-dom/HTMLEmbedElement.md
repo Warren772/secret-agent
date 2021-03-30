@@ -4,6 +4,42 @@
 
 ## Properties
 
+### elem.align <div class="specs"><i>W3C</i></div> {#align}
+
+Is a `string` representing an enumerated property indicating alignment of the element's contents with respect to the surrounding context. The possible values are <code>"left"</code>, <code>"right"</code>, <code>"center"</code>, and <code>"justify"</code>.
+
+#### **Type**: `Promise<string>`
+
+### elem.height <div class="specs"><i>W3C</i></div> {#height}
+
+Is a `string` reflecting the <code>height</code> HTML attribute, containing the displayed height of the resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.name <div class="specs"><i>W3C</i></div> {#name}
+
+Is a `string` representing the name of the embedded object.
+
+#### **Type**: `Promise<string>`
+
+### elem.src <div class="specs"><i>W3C</i></div> {#src}
+
+Is a `string` that reflects the <code>src</code> HTML attribute, containing the address of the resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.type <div class="specs"><i>W3C</i></div> {#type}
+
+Is a `string` that reflects the <code>type</code> HTML attribute, containing the type of the resource.
+
+#### **Type**: `Promise<string>`
+
+### elem.width <div class="specs"><i>W3C</i></div> {#width}
+
+Is a `string` that reflects the <code>width</code> HTML attribute, containing the displayed width of the resource.
+
+#### **Type**: `Promise<string>`
+
 ### elem.accessKey <div class="specs"><i>W3C</i></div> {#accessKey}
 
 Is a `string` representing the access key assigned to the element.
@@ -104,13 +140,13 @@ Is a `boolean` representing the translation.
 
 Returns a <code>NamedNodeMap</code> object containing the assigned attributes of the corresponding HTML element.
 
-#### **Type**: `NamedNodeMap`
+#### **Type**: [`NamedNodeMap`](./named-node-map)
 
 ### elem.classList <div class="specs"><i>W3C</i></div> {#classList}
 
 Returns a <code>DOMTokenList</code> containing the list of class attributes.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.className <div class="specs"><i>W3C</i></div> {#className}
 
@@ -180,7 +216,7 @@ Is a `string` representing the markup of the element including its content. When
 
 Represents the part identifier(s) of the element (i.e. set using the <code>part</code> attribute), returned as a <code>DOMTokenList</code>.
 
-#### **Type**: `DOMTokenList`
+#### **Type**: [`DOMTokenList`](./dom-token-list)
 
 ### elem.prefix <div class="specs"><i>W3C</i></div> {#prefix}
 
@@ -216,7 +252,7 @@ Returns a `number` representing the scroll view width of the element.
 
 Returns the open shadow root that is hosted by the element, or null if no open shadow root is present.
 
-#### **Type**: `ShadowRoot`
+#### **Type**: [`ShadowRoot`](./shadow-root)
 
 ### elem.slot <div class="specs"><i>W3C</i></div> {#slot}
 
@@ -377,6 +413,42 @@ Returns / Sets the textual content of an element and all its descendants.
 
 #### **Type**: `Promise<string>`
 
+### elem.style <div class="specs"><i>W3C</i></div> {#style}
+
+The <code><strong>style</strong></code> property is used to get as well as set the <em>inline</em> style of an element. When getting, it returns a <code>CSSStyleDeclaration</code> object that contains a list of all styles properties for that element with values assigned for the attributes that are defined in the element's inline <code>style</code> attribute.
+
+#### **Type**: [`CSSStyleDeclaration`](./css-style-declaration)
+
+### elem.contentEditable <div class="specs"><i>W3C</i></div> {#contentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.isContentEditable <div class="specs"><i>W3C</i></div> {#isContentEditable}
+
+Needs content.
+
+#### **Type**: `Promise<boolean>`
+
+### elem.dataset <div class="specs"><i>W3C</i></div> {#dataset}
+
+Needs content.
+
+#### **Type**: [`DOMStringMap`](./dom-string-map)
+
+### elem.nonce <div class="specs"><i>W3C</i></div> {#nonce}
+
+Needs content.
+
+#### **Type**: `Promise<string>`
+
+### elem.tabIndex <div class="specs"><i>W3C</i></div> {#tabIndex}
+
+Needs content.
+
+#### **Type**: `Promise<number>`
+
 ### elem.nextElementSibling <div class="specs"><i>W3C</i></div> {#nextElementSibling}
 
 Returns the <code>Element</code> immediately following this node in its parent's children list, or <code>null</code> if there is no <code>Element</code> in the list following this node.
@@ -412,6 +484,12 @@ Returns the first node which is both a child of this <code>ParentNode</code> <em
 Returns the last node which is both a child of this <code>ParentNode</code> <em>and</em> is an <code>Element</code>, or <code>null</code> if there is none.
 
 #### **Type**: [`SuperElement`](./super-element)
+
+### elem.assignedSlot <div class="specs"><i>W3C</i></div> {#assignedSlot}
+
+Returns the <code>&lt;slot&gt;</code> the node is inserted in.
+
+#### **Type**: [`HTMLSlotElement`](./html-slot-element)
 
 ## Methods
 
@@ -771,55 +849,48 @@ Returns a <code>NodeList</code> representing a list of elements with the current
 
  |   |   | 
  | --- | --- | 
- | `align` | `height`
-`name` | `src`
-`type` | `width`
-`onfullscreenchange` | `onfullscreenerror`
+ | `onfullscreenchange` | `onfullscreenerror`
 `oncopy` | `oncut`
-`onpaste` | `style`
-`contentEditable` | `isContentEditable`
-`onabort` | `onanimationend`
-`onanimationiteration` | `onanimationstart`
-`onauxclick` | `onblur`
-`oncancel` | `oncanplay`
-`oncanplaythrough` | `onchange`
-`onclick` | `onclose`
-`oncontextmenu` | `oncuechange`
-`ondblclick` | `ondrag`
-`ondragend` | `ondragenter`
-`ondragleave` | `ondragover`
-`ondragstart` | `ondrop`
-`ondurationchange` | `onemptied`
-`onended` | `onerror`
-`onfocus` | `onformdata`
-`ongotpointercapture` | `oninput`
-`oninvalid` | `onkeydown`
-`onkeypress` | `onkeyup`
-`onload` | `onloadeddata`
-`onloadedmetadata` | `onloadstart`
-`onlostpointercapture` | `onmousedown`
-`onmouseenter` | `onmouseleave`
-`onmousemove` | `onmouseout`
-`onmouseover` | `onmouseup`
-`onpause` | `onplay`
-`onplaying` | `onpointercancel`
-`onpointerdown` | `onpointerenter`
-`onpointerleave` | `onpointermove`
-`onpointerout` | `onpointerover`
-`onpointerup` | `onprogress`
-`onratechange` | `onreset`
-`onresize` | `onscroll`
-`onseeked` | `onseeking`
-`onselect` | `onselectionchange`
-`onselectstart` | `onstalled`
-`onsubmit` | `onsuspend`
-`ontimeupdate` | `ontouchcancel`
-`ontouchend` | `ontouchmove`
-`ontouchstart` | `ontransitionend`
-`onvolumechange` | `onwaiting`
-`onwheel` | `dataset`
-`nonce` | `tabIndex`
-`assignedSlot` |  | 
+`onpaste` | `onabort`
+`onanimationend` | `onanimationiteration`
+`onanimationstart` | `onauxclick`
+`onblur` | `oncancel`
+`oncanplay` | `oncanplaythrough`
+`onchange` | `onclick`
+`onclose` | `oncontextmenu`
+`oncuechange` | `ondblclick`
+`ondrag` | `ondragend`
+`ondragenter` | `ondragleave`
+`ondragover` | `ondragstart`
+`ondrop` | `ondurationchange`
+`onemptied` | `onended`
+`onerror` | `onfocus`
+`onformdata` | `ongotpointercapture`
+`oninput` | `oninvalid`
+`onkeydown` | `onkeypress`
+`onkeyup` | `onload`
+`onloadeddata` | `onloadedmetadata`
+`onloadstart` | `onlostpointercapture`
+`onmousedown` | `onmouseenter`
+`onmouseleave` | `onmousemove`
+`onmouseout` | `onmouseover`
+`onmouseup` | `onpause`
+`onplay` | `onplaying`
+`onpointercancel` | `onpointerdown`
+`onpointerenter` | `onpointerleave`
+`onpointermove` | `onpointerout`
+`onpointerover` | `onpointerup`
+`onprogress` | `onratechange`
+`onreset` | `onresize`
+`onscroll` | `onseeked`
+`onseeking` | `onselect`
+`onselectionchange` | `onselectstart`
+`onstalled` | `onsubmit`
+`onsuspend` | `ontimeupdate`
+`ontouchcancel` | `ontouchend`
+`ontouchmove` | `ontouchstart`
+`ontransitionend` | `onvolumechange`
+`onwaiting` | `onwheel` | 
 
 #### Methods
 

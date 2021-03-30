@@ -1,34 +1,25 @@
-import 'source-map-support/register';
-import Core from '@secret-agent/core';
-import { SecretAgentClientGenerator } from '@secret-agent/client';
-import ISessionMeta from '@secret-agent/core-interfaces/ISessionMeta';
+import '@secret-agent/commons/SourceMapSupport';
+import agent, {
+  ConnectionFactory,
+  IConnectionToCoreOptions,
+  RemoteConnectionToCore,
+} from '@secret-agent/client';
+import { CoreProcess } from '@secret-agent/core';
+import ShutdownHandler from '@secret-agent/commons/ShutdownHandler';
 
-process.title = 'SecretAgent';
+export * from '@secret-agent/client';
+export default agent;
 
-const { SecretAgent, coreClient } = SecretAgentClientGenerator();
+let coreHost: Promise<string>;
 
-// OUTGOING ////////////////////////////////////////////////////////////////////
+ConnectionFactory.createLocalConnection = (options: IConnectionToCoreOptions) => {
+  coreHost ??= CoreProcess.spawn(options);
 
-coreClient.pipeOutgoingCommand = async (
-  sessionMeta: ISessionMeta | null,
-  command: string,
-  args: any[],
-) => {
-  if (sessionMeta) {
-    const core = Core.byTabId[sessionMeta.tabId];
-    const data = await core[command](...args);
-    const commandId = core.lastCommandId;
-    return { data, commandId };
-  }
-  return { data: await Core[command](...args) };
+  const connection = new RemoteConnectionToCore({
+    ...options,
+    host: coreHost,
+  });
+
+  ShutdownHandler.register(() => connection.disconnect());
+  return connection;
 };
-
-// INCOMING ////////////////////////////////////////////////////////////////////
-
-Core.onEventFn = (meta: ISessionMeta, listenerId: string, ...args: any[]) => {
-  coreClient.pipeIncomingEvent(meta, listenerId, args);
-};
-
-// EXPORT SecretAgent //////////////////////////////////////////////////////////
-
-export = SecretAgent;
