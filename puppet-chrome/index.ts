@@ -22,7 +22,7 @@ const PuppetLauncher: IPuppetLauncher = {
     const chromeArguments = [...defaultArgs];
 	if (options.userDataDir !== undefined){
 		chromeArguments.push(
-			`--user-data-dir=${Path.join(os.homedir(), userDataDir)}`,
+			`--user-data-dir=${Path.join(os.homedir(), options.userDataDir)}`,
 		);
 	}
     if (!options.showBrowser) {
