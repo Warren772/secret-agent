@@ -119,6 +119,7 @@ export default class GlobalPool {
     }
 	
 	if(process.env.SA_USER_DIR !== undefined){
+		console.log('trigged flag');
 		engine.userDataDir = process.env.SA_USER_DIR;
 	}
 

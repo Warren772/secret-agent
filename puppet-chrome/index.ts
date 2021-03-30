@@ -21,6 +21,7 @@ const PuppetLauncher: IPuppetLauncher = {
   }) {
     const chromeArguments = [...defaultArgs];
 	if (options.userDataDir !== undefined){
+		console.log('trigged flag');
 		chromeArguments.push(
 			`--user-data-dir=${Path.join(os.homedir(), options.userDataDir)}`,
 		);
@@ -34,7 +35,7 @@ const PuppetLauncher: IPuppetLauncher = {
       );
     } 
 	else {
-		if(options.userDataDir === undefined){
+		if(options.userDataDir === undefined){ 
 		chromeArguments.push(
 			`--user-data-dir=${Path.join(os.tmpdir(), 'chromium-headed-data', String((counter += 1)))}`,
 		); // required to allow multiple browsers to be headed
